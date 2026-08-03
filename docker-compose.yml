@@ -1,0 +1,104 @@
+version: '3.9'
+
+networks:
+  kidspiano-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  n8n-data:
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kidspiano}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-kidspiano}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - kidspiano-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kidspiano"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  piano-backend:
+    build: ./piano-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PORT: 3002
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kidspiano-net
+
+  midi-service:
+    build: ./midi-service
+    restart: unless-stopped
+    networks:
+      - kidspiano-net
+
+  piano-frontend:
+    build: ./piano-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://piano-backend:3002
+    networks:
+      - kidspiano-net
+
+  piano-admin:
+    build: ./piano-admin
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://piano-backend:3002
+    networks:
+      - kidspiano-net
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: 'true'
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:-kidspiano_n8n}
+      N8N_HOST: n8n.kidspiano.local
+      WEBHOOK_URL: http://n8n:5678
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kidspiano-net
+
+  nginx:
+    build: ./nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - piano-frontend
+      - piano-admin
+      - piano-backend
+      - midi-service
+      - n8n
+    networks:
+      - kidspiano-net
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx

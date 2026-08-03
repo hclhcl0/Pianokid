@@ -1,0 +1,117 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { YIN } from 'pitchfinder';
+
+interface MicrophonePitchResult {
+  isEnabled: boolean;
+  error: string | null;
+  toggleMicrophone: () => void;
+}
+
+export function useMicrophonePitch(
+  onNoteOn: (midiNumber: number) => void,
+  active: boolean = true
+): MicrophonePitchResult {
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const requestRef = useRef<number | null>(null);
+  const lastNoteTimeRef = useRef<number>(0);
+  const lastDetectedNoteRef = useRef<number | null>(null);
+
+  const toggleMicrophone = useCallback(async () => {
+    if (isEnabled) {
+      // Turn off
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+      setIsEnabled(false);
+      setError(null);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = audioCtx;
+      
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048; // For pitchfinder, 2048 is good balance of resolution and speed
+      analyserRef.current = analyser;
+      
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const detectPitch = YIN({ sampleRate: audioCtx.sampleRate, threshold: 0.1 });
+      const float32Array = new Float32Array(analyser.fftSize);
+
+      const loop = () => {
+        if (!active) {
+           requestRef.current = requestAnimationFrame(loop);
+           return;
+        }
+
+        analyser.getFloatTimeDomainData(float32Array);
+        
+        // Simple volume gate (RMS) to prevent background noise detection
+        let rms = 0;
+        for (let i = 0; i < float32Array.length; i++) {
+          rms += float32Array[i] * float32Array[i];
+        }
+        rms = Math.sqrt(rms / float32Array.length);
+
+        const now = Date.now();
+
+        if (rms > 0.015) { // Minimum volume threshold
+          const frequency = detectPitch(float32Array);
+          
+          if (frequency && frequency > 50 && frequency < 3000) { // Reasonable piano range
+            // Convert frequency to MIDI number (A4 = 440Hz = MIDI 69)
+            const midiNumber = Math.round(12 * (Math.log2(frequency / 440)) + 69);
+            
+            // Debounce: don't trigger the same note multiple times instantly
+            // Require either a new note, or 400ms delay to re-trigger the same note
+            if (midiNumber !== lastDetectedNoteRef.current || now - lastNoteTimeRef.current > 400) {
+              onNoteOn(midiNumber);
+              lastDetectedNoteRef.current = midiNumber;
+              lastNoteTimeRef.current = now;
+            }
+          }
+        } else {
+           // Reset last note if quiet so we can re-trigger the same note quickly if they play it again
+           if (now - lastNoteTimeRef.current > 100) {
+              lastDetectedNoteRef.current = null;
+           }
+        }
+        
+        requestRef.current = requestAnimationFrame(loop);
+      };
+
+      requestRef.current = requestAnimationFrame(loop);
+      setIsEnabled(true);
+      setError(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Could not access microphone");
+      setIsEnabled(false);
+    }
+  }, [isEnabled, active, onNoteOn]);
+
+  useEffect(() => {
+    return () => {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  return { isEnabled, error, toggleMicrophone };
+}

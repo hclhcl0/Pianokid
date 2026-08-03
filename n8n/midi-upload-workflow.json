@@ -1,0 +1,155 @@
+{
+  "name": "MIDI Upload Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "midi-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "midi-upload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://midi-service:8000/parse-url",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Webhook').first().json.body.midiFileUrl }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "Send to MIDI Microservice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = $input.first().json;\nreturn [{\n  json: {\n    midiJsonUrl: `data:application/json;base64,${Buffer.from(JSON.stringify(parsed.notes)).toString('base64')}`,\n    tempo: parsed.tempo,\n    title: $('Webhook').first().json.body.title,\n    lessonId: $('Webhook').first().json.body.lessonId\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Build Lesson Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=http://piano-backend:3002/api/lessons/{{ $json.lessonId }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "midiJsonUrl",
+              "value": "={{ $json.midiJsonUrl }}"
+            },
+            {
+              "name": "tempo",
+              "value": "={{ $json.tempo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Update Lesson in Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://piano-backend:3002/api/lessons/{{ $json.lessonId }}/publish",
+        "options": {}
+      },
+      "id": "5",
+      "name": "POST Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    success: true,\n    lessonId: $('Webhook').first().json.body.lessonId,\n    message: 'MIDI processed and lesson published!'\n  }\n}];"
+      },
+      "id": "6",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send to MIDI Microservice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to MIDI Microservice": {
+      "main": [
+        [
+          {
+            "node": "Build Lesson Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Lesson Payload": {
+      "main": [
+        [
+          {
+            "node": "Update Lesson in Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lesson in Backend": {
+      "main": [
+        [
+          {
+            "node": "POST Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Publish": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

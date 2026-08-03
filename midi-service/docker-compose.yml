@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  midi-service:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=8000
+      - MAX_FILE_SIZE_MB=50
+      - ALLOW_ORIGINS=*

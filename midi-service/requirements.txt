@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+pretty_midi
+mido
+python-dotenv
+pydantic
+requests

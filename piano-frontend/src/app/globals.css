@@ -1,0 +1,187 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Fredoka One', cursive, sans-serif;
+  background-color: #0a0a1a;
+  color: white;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.main-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.game-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+}
+
+.start-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 40px;
+  text-align: center;
+  z-index: 100;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.start-screen h1 {
+  font-size: 48px;
+  margin-bottom: 10px;
+  background: -webkit-linear-gradient(#f093fb, #f5576c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.start-btn {
+  margin-top: 20px;
+  padding: 15px 30px;
+  font-size: 24px;
+  font-family: 'Fredoka One', cursive;
+  background: linear-gradient(45deg, #f093fb, #f5576c);
+  border: none;
+  border-radius: 30px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+  transition: transform 0.2s;
+}
+
+.start-btn:hover {
+  transform: scale(1.05);
+}
+
+.error {
+  color: #ff6b6b;
+  margin: 10px 0;
+}
+
+.hud-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hud-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: auto;
+  margin-bottom: 22vh; /* Bàn phím chiếm 20% chiều cao màn hình (20vh), cách thêm 2vh cho an toàn */
+}
+
+.score-badge, .combo-badge, .stars-container, .mode-badge {
+  padding: 10px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.value {
+  font-size: 32px;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.star {
+  font-size: 24px;
+  opacity: 0.3;
+  filter: grayscale(100%);
+  transition: all 0.3s;
+}
+
+.star.lit {
+  opacity: 1;
+  filter: grayscale(0%);
+  text-shadow: 0 0 15px gold;
+  animation: starLight 0.5s ease-out;
+}
+
+.pause-btn {
+  padding: 10px 20px;
+  font-family: 'Fredoka One', cursive;
+  font-size: 16px;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+@keyframes comboFlash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); color: #ff9a9e; }
+  100% { transform: scale(1); }
+}
+
+.comboFlash {
+  animation: comboFlash 0.3s infinite;
+}
+
+@keyframes starLight {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes floatUp {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to { transform: translateY(-60px) scale(1.2); opacity: 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes starPop {
+  0% { transform: scale(0) rotate(-30deg); }
+  60% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideInUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
