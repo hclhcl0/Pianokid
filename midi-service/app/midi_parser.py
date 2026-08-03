@@ -1,51 +1,109 @@
+"""
+KidsPiano MIDI Parser v4 — Standard Piano MIDI only
+Chỉ xử lý file MIDI Piano chuẩn. Không tự động chế hợp âm.
+Chiến lược tách tay (Left/Right):
+  1. Nếu file có >= 2 track: Track có âm vực cao nhất là Right, các track còn lại là Left.
+  2. Nếu file chỉ có 1 track: Tách theo nốt C4 (MIDI 60). Nốt >= 60 là Right, < 60 là Left.
+  3. Loại bỏ track trống và track trống (drums).
+  4. Chuẩn hóa thời gian (Normalize) để nốt đầu tiên bắt đầu ở t=0.
+Copyright: Hồ Công Lượng <hclhcl0@gmail.com>
+"""
 import pretty_midi
 from pydantic import BaseModel
 from typing import List, Literal
 
 class NoteEvent(BaseModel):
-    """Represents a single note event from a MIDI file."""
     note: str
     midiNumber: int
     startTime: float
     duration: float
     track: Literal['left', 'right']
 
+NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+
 class MidiParser:
-    """Parser for MIDI files to extract note events for KidsPiano."""
-    
     def __init__(self, file_path: str):
-        self.file_path = file_path
-        
-    def _midi_number_to_name(self, midi_num: int) -> str:
-        """Converts a MIDI note number to its string representation (e.g., C4)."""
-        return pretty_midi.note_number_to_name(midi_num)
-        
+        self.file_path  = file_path
+        self.time_signature = '4/4'
+        self._bpm: float = 120.0
+
     def parse(self) -> List[NoteEvent]:
-        """Parses the MIDI file and returns a sorted list of NoteEvents."""
         try:
-            midi_data = pretty_midi.PrettyMIDI(self.file_path)
+            midi = pretty_midi.PrettyMIDI(self.file_path)
         except Exception as e:
-            raise ValueError(f"Failed to parse MIDI file: {e}")
-            
-        events: List[NoteEvent] = []
-        
-        for instrument in midi_data.instruments:
-            if not instrument.notes:
-                continue
-                
-            # Auto-detect hand based on average pitch
-            avg_pitch = sum(note.pitch for note in instrument.notes) / len(instrument.notes)
-            track_name: Literal['left', 'right'] = 'right' if avg_pitch >= 60 else 'left'
-            
-            for note in instrument.notes:
-                events.append(NoteEvent(
-                    note=self._midi_number_to_name(note.pitch),
-                    midiNumber=note.pitch,
-                    startTime=note.start,
-                    duration=note.end - note.start,
-                    track=track_name
-                ))
-                
-        # Sort by start time
-        events.sort(key=lambda e: e.startTime)
+            raise ValueError(f'Cannot parse MIDI: {e}')
+
+        # Lấy BPM và Time Signature
+        try:
+            self._bpm = float(midi.estimate_tempo())
+            if self._bpm <= 0 or self._bpm > 350: self._bpm = 120.0
+        except Exception:
+            self._bpm = 120.0
+
+        if midi.time_signature_changes:
+            ts = midi.time_signature_changes[0]
+            self.time_signature = f'{ts.numerator}/{ts.denominator}'
+
+        # ─── Lọc các track hợp lệ (không phải trống) ───────────────
+        valid_insts = [i for i in midi.instruments if not i.is_drum and len(i.notes) > 0]
+        if not valid_insts:
+            return []
+
+        all_events: List[NoteEvent] = []
+
+        # ─── Phân tách tay Trái / Phải ───────────────
+        if len(valid_insts) == 2:
+            inst1, inst2 = valid_insts[0], valid_insts[1]
+            avg1 = sum(n.pitch for n in inst1.notes) / len(inst1.notes)
+            avg2 = sum(n.pitch for n in inst2.notes) / len(inst2.notes)
+            if avg1 >= avg2:
+                all_events.extend(self._to_events(inst1.notes, 'right'))
+                all_events.extend(self._to_events(inst2.notes, 'left'))
+            else:
+                all_events.extend(self._to_events(inst2.notes, 'right'))
+                all_events.extend(self._to_events(inst1.notes, 'left'))
+        elif len(valid_insts) == 1:
+            inst = valid_insts[0]
+            right_notes = [n for n in inst.notes if n.pitch >= 60]
+            left_notes  = [n for n in inst.notes if n.pitch < 60]
+            all_events.extend(self._to_events(right_notes, 'right'))
+            all_events.extend(self._to_events(left_notes, 'left'))
+        else:
+            # Nếu có nhiều hơn 2 track, chỉ lấy 2 track chứa nhiều nốt nhất
+            valid_insts.sort(key=lambda x: len(x.notes), reverse=True)
+            inst1, inst2 = valid_insts[0], valid_insts[1]
+            avg1 = sum(n.pitch for n in inst1.notes) / len(inst1.notes)
+            avg2 = sum(n.pitch for n in inst2.notes) / len(inst2.notes)
+            if avg1 >= avg2:
+                all_events.extend(self._to_events(inst1.notes, 'right'))
+                all_events.extend(self._to_events(inst2.notes, 'left'))
+            else:
+                all_events.extend(self._to_events(inst2.notes, 'right'))
+                all_events.extend(self._to_events(inst1.notes, 'left'))
+
+        # ─── Sắp xếp và Chuẩn hóa (Normalize) thời gian ───────────────
+        all_events.sort(key=lambda e: e.startTime)
+
+        if all_events:
+            min_t = all_events[0].startTime
+            for ev in all_events:
+                ev.startTime = round(ev.startTime - min_t, 4)
+
+        return all_events
+
+    def _to_events(self, notes: list, track: Literal['left','right']) -> List[NoteEvent]:
+        events = []
+        for n in notes:
+            dur = round(n.end - n.start, 4)
+            if dur < 0.03: continue  # Bỏ qua các nốt quá ngắn (nhiễu)
+            events.append(NoteEvent(
+                note=self._midi_to_name(n.pitch),
+                midiNumber=n.pitch,
+                startTime=round(n.start, 4),
+                duration=dur,
+                track=track
+            ))
         return events
+
+    def _midi_to_name(self, m: int) -> str:
+        return NOTE_NAMES[m % 12] + str(m // 12 - 1)

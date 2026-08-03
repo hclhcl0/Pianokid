@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     let subfolder = 'misc';
-    if (ext === '.mid' || ext === '.midi') subfolder = 'midi';
+    if (ext === '.mid' || ext === '.midi' || ext === '.xml' || ext === '.mxl') subfolder = 'midi';
     else if (ext === '.pdf') subfolder = 'pdf';
     else if (['.png', '.jpg', '.jpeg'].includes(ext)) subfolder = 'images';
     

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { ActiveNote, GameConfig } from '../types';
-import { getPianoKeyLayout, START_MIDI, NUM_KEYS, NUM_WHITE_KEYS } from '../lib/pianoLayout';
+import { getPianoKeyLayout, KeyboardRange, DEFAULT_RANGE, MIDI_TO_KEY } from '../lib/pianoLayout';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -10,6 +10,8 @@ interface GameCanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   waitingForNote: number | null;
+  userActiveKeys?: Set<number>;
+  keyboardRange?: KeyboardRange;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -18,11 +20,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   canvasWidth,
   canvasHeight,
   waitingForNote,
+  userActiveKeys = new Set(),
+  keyboardRange = DEFAULT_RANGE,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const phaseRef = useRef<number>(0);
   const rafRef = useRef<number>();
-  const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, life: number, color: string}[]>([]);
+  const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, life: number, size: number, color: string}[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,7 +45,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      const whiteKeyWidth = canvasWidth / NUM_WHITE_KEYS;
+      const whiteKeyWidth = canvasWidth / keyboardRange.numWhiteKeys;
       
       // Proportional key height (approx 1:5 ratio for white keys)
       // Cap at 30% of screen height to leave room for falling notes
@@ -58,21 +62,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const height = Math.max(note.duration * config.fallSpeed, 20);
           const noteTopY = trueY - height;
           
-          if (!note.hit && !note.missed && trueY >= hitZoneY && noteTopY <= hitZoneY) {
+          if (note.isHeld || (!note.hit && !note.missed && trueY >= hitZoneY && noteTopY <= hitZoneY)) {
               activeKeys.add(note.midiNumber);
               
-              // Phát nổ hạt (particles) khi đụng phím ở chế độ Standard hoặc khi đang Hold nốt
-              if (!config.waitMode || note.isHeld) {
-                  const layout = getPianoKeyLayout(note.midiNumber, canvasWidth);
-                  if (layout && Math.random() > 0.2) {
-                      for(let i=0; i<2; i++) {
+              if (note.isHeld) {
+                  const layout = getPianoKeyLayout(note.midiNumber, canvasWidth, keyboardRange);
+                  if (layout) {
+                      // Tạo hạt mịn hơn (kích thước nhỏ, bay nhẹ nhàng)
+                      for (let i = 0; i < 2; i++) {
                           particlesRef.current.push({
-                             x: layout.centerX + (Math.random() - 0.5) * layout.width,
-                             y: hitZoneY,
-                             vx: (Math.random() - 0.5) * 8,
-                             vy: (Math.random() * -6) - 1,
+                             x: layout.centerX + (Math.random() - 0.5) * layout.width * 0.5,
+                             y: hitZoneY, 
+                             vx: (Math.random() - 0.5) * 1.5,
+                             vy: (Math.random() * -5) - 1, 
                              life: 1.0,
-                             color: note.track === 'left' ? '#56CCF2' : '#A8E063'
+                             size: Math.random() * 2 + 1, // Hạt mịn và nhỏ hơn
+                             color: '#ffffff'
                           });
                       }
                   }
@@ -94,12 +99,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // ── Piano keyboard ────────────────────────────────────────────────
       // Draw white keys first so they are underneath black keys
-      for (let i = 0; i < NUM_KEYS; i++) {
-        const midiNum = START_MIDI + i;
-        const layout = getPianoKeyLayout(midiNum, canvasWidth);
+      for (let i = 0; i < keyboardRange.numKeys; i++) {
+        const midiNum = keyboardRange.startMidi + i;
+        const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
         if (layout && layout.type === 'white') {
           const isWaiting = waitingForNote === midiNum;
-          const isActive = activeKeys.has(midiNum);
+          const isActive = activeKeys.has(midiNum) || userActiveKeys.has(midiNum);
           
           ctx.save();
           if (isWaiting || isActive) {
@@ -124,21 +129,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
           // Draw note text on white keys
           ctx.fillStyle = '#000000';
-          ctx.font = `bold ${Math.max(10, layout.width * 0.4)}px "Fredoka One", sans-serif`;
+          ctx.font = `900 ${Math.max(14, layout.width * 0.5)}px "Nunito", sans-serif`; // To và đậm hơn
           ctx.textAlign = 'center';
-          ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentKeyHeight - 15);
+          // Nâng lên một chút để chữ to không chạm viền đáy
+          ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentKeyHeight - 12);
           
           ctx.restore();
         }
       }
 
       // Draw black keys on top
-      for (let i = 0; i < NUM_KEYS; i++) {
-        const midiNum = START_MIDI + i;
-        const layout = getPianoKeyLayout(midiNum, canvasWidth);
+      for (let i = 0; i < keyboardRange.numKeys; i++) {
+        const midiNum = keyboardRange.startMidi + i;
+        const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
         if (layout && layout.type === 'black') {
           const isWaiting = waitingForNote === midiNum;
-          const isActive = activeKeys.has(midiNum);
+          const isActive = activeKeys.has(midiNum) || userActiveKeys.has(midiNum);
           
           ctx.save();
           if (isWaiting || isActive) {
@@ -174,8 +180,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.stroke();
           
           // Draw note text on black keys
+          // (Usually we don't draw note names on black keys to avoid clutter)
           ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${Math.max(9, layout.width * 0.4)}px "Fredoka One", sans-serif`;
+          ctx.font = `bold ${Math.max(9, layout.width * 0.4)}px "Nunito", sans-serif`;
           ctx.textAlign = 'center';
           ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentBlackKeyHeight - 12);
           
@@ -187,7 +194,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       activeNotes.forEach(note => {
         if ((note.hit && !note.isHeld) || note.missed) return;
 
-        const layout = getPianoKeyLayout(note.midiNumber, canvasWidth);
+        const layout = getPianoKeyLayout(note.midiNumber, canvasWidth, keyboardRange);
         if (!layout) return;
 
         const isLeft = note.track === 'left';
@@ -214,74 +221,107 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (note.isWaiting) {
           ctx.fillStyle = '#FFD700'; // Solid yellow
           ctx.strokeStyle = '#FFFFFF';
+          ctx.shadowColor = '#FFD700';
         } else if (isLeft) {
           ctx.fillStyle = '#56CCF2'; // Solid flat blue
           ctx.strokeStyle = '#1E5799';
+          ctx.shadowColor = '#56CCF2';
         } else {
           ctx.fillStyle = '#A8E063'; // Solid flat green
           ctx.strokeStyle = '#3E8E41';
+          ctx.shadowColor = '#A8E063';
         }
 
+        // Tạo hiệu ứng phát sáng nổi bật
+        ctx.shadowBlur = 15;
+        
         ctx.beginPath();
-        // Slightly rounded corners like the video
-        ctx.roundRect(x, noteTopY, width, drawHeight, 8);
+        // Nếu nốt nhạc chạm đáy (vùng hit zone), xóa bo tròn góc dưới để dính chặt vào phím đàn không bị hở
+        const isTouchingBottom = noteBottomY >= hitZoneY - 2;
+        const radii = isTouchingBottom ? [8, 8, 0, 0] : [8, 8, 8, 8];
+        ctx.roundRect(x, noteTopY, width, drawHeight, radii);
+        
+        ctx.globalAlpha = 1.0; // Không làm mờ tay trái nữa để nốt nổi bật hơn
+        
         ctx.fill();
 
         ctx.lineWidth = 2;
+        // Bỏ shadow khi vẽ viền để viền được sắc nét
+        ctx.shadowBlur = 0;
         ctx.stroke();
 
         // Always draw note name inside the pill if it's tall enough
         if (drawHeight > 15) {
-          ctx.fillStyle = note.isWaiting ? '#000000' : '#000000'; // Black text for high contrast on flat notes
-          ctx.font = `bold ${Math.min(width * 0.6, 18)}px Fredoka One, sans-serif`;
+          ctx.fillStyle = '#000000'; // Đen đậm trên nền sáng
+          // Bỏ giới hạn 18px, cho phép chữ to theo chiều ngang của nốt
+          ctx.font = `900 ${Math.max(14, width * 0.7)}px Nunito, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           
-          // Ensure text is printed near the bottom of the pill (where it hits) if it's long
-          const textY = drawHeight > 40 ? noteBottomY - 15 : noteBottomY - drawHeight / 2;
+          // In chữ ở gần đáy thanh nhạc, thụt lên một chút để không bị che bởi tia lửa
+          const textY = drawHeight > 40 ? noteBottomY - 20 : noteBottomY - drawHeight / 2;
           ctx.fillText(NOTE_NAMES[note.midiNumber % 12], layout.centerX, textY);
+        }
+
+        // Hiệu ứng "đốt cháy" mượt và không che lấp nốt nhạc
+        if (note.isHeld) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen'; // Blend mode giúp hiệu ứng sáng lên mà không đè bít nốt nhạc
+            const glowWidth = width * 1.5; // Kéo rộng thêm để vệt mờ lan xa
+            const glowHeight = 8; 
+            
+            // Vẽ vệt mờ nhòe cực mạnh
+            ctx.shadowBlur = 40; // Tăng mạnh độ nhòe
+            ctx.shadowColor = isLeft ? '#56CCF2' : '#A8E063';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; // Gần như trong suốt, chỉ lấy cái bóng (shadow)
+            
+            ctx.beginPath();
+            ctx.ellipse(layout.centerX, hitZoneY, glowWidth / 2, glowHeight / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fill(); // Vẽ 2 lần để cái bóng nhòe đậm hơn mà lõi không bị cứng
+            
+            // Vẽ lõi laser (cũng làm nhòe để không bị sắc cạnh)
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#FFFFFF';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.ellipse(layout.centerX, hitZoneY, width * 0.4, glowHeight * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
         }
 
         ctx.restore();
       });
 
-      // ── Explosion Particles ───────────────────────────────────────────
+      // ── Spark Particles ───────────────────────────────────────────
       particlesRef.current = particlesRef.current.filter(p => p.life > 0);
       particlesRef.current.forEach(p => {
          p.x += p.vx;
          p.y += p.vy;
-         p.vy += 0.3; // Trọng lực (Gravity)
-         p.life -= 0.03;
+         
+         // Ma sát không khí (Drag) làm hạt bay chậm dần
+         p.vx *= 0.95;
+         p.vy *= 0.95;
+         
+         p.life -= 0.03; // Tan biến từ từ
          
          ctx.save();
-         ctx.globalAlpha = Math.max(0, p.life);
+         ctx.globalCompositeOperation = 'screen'; // Blend mode sáng mịn, không che nốt
+         ctx.globalAlpha = Math.max(0, p.life * p.life * 0.8); // Giảm nhẹ alpha tối đa
          ctx.fillStyle = p.color;
+         
          ctx.beginPath();
-         // Vẽ các tia lửa hình tròn
-         ctx.arc(p.x, p.y, Math.random() * 3 + 1.5, 0, Math.PI * 2);
+         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
          ctx.fill();
          
-         // Đổ bóng phát sáng cho tia lửa
-         ctx.shadowBlur = 5;
+         ctx.shadowBlur = 8;
          ctx.shadowColor = p.color;
          ctx.fill();
          ctx.restore();
       });
 
-      // ── Wait Mode overlay banner ──────────────────────────────────────
-      if (waitingForNote !== null) {
-        ctx.save();
-        ctx.fillStyle = `rgba(255, 200, 0, ${0.08 + 0.05 * pulse})`;
-        ctx.fillRect(0, 0, canvasWidth, hitZoneY);
-
-        ctx.font = 'bold 18px Fredoka One, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = `rgba(255, 220, 80, ${0.6 + 0.4 * pulse})`;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#FFD700';
-        ctx.fillText('⏸ PRESS THE HIGHLIGHTED KEY', canvasWidth / 2, 36);
-        ctx.restore();
-      }
+      // ── Wait Mode overlay banner removed per user request ──────────────
 
       rafRef.current = requestAnimationFrame(draw);
     };

@@ -86,22 +86,52 @@ export default function LessonsPage() {
                 </td>
                 <td className="py-3 px-4">{lesson.tempo}</td>
                 <td className="py-3 px-4">
-                  {lesson.isPublished ? (
-                    <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                      <CheckCircle size={16} /> Published
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-slate-500 text-sm font-medium">
-                      <XCircle size={16} /> Draft
-                    </span>
-                  )}
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await togglePublish(lesson.id, !lesson.isPublished);
+                        setLessons(lessons.map(l => l.id === lesson.id ? { ...l, isPublished: !lesson.isPublished } : l));
+                      } catch (e) {
+                        alert('Failed to update publish status');
+                      }
+                    }}
+                    className={`flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full transition-colors ${
+                      lesson.isPublished 
+                        ? 'text-green-700 bg-green-100 hover:bg-green-200' 
+                        : 'text-slate-600 bg-slate-100 hover:bg-slate-200'
+                    }`}
+                  >
+                    {lesson.isPublished ? (
+                      <><CheckCircle size={16} /> Published</>
+                    ) : (
+                      <><XCircle size={16} /> Draft</>
+                    )}
+                  </button>
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex justify-end gap-2">
-                    <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors">
+                    <Link href={`/lessons/${lesson.id}/tab-editor`}
+                      className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                      title="Tab Editor">
+                      🎹
+                    </Link>
+                    <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors" title="Edit">
                       <Edit2 size={18} />
                     </button>
-                    <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                    <button 
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to delete this lesson?')) {
+                          try {
+                            await deleteLesson(lesson.id);
+                            setLessons(lessons.filter(l => l.id !== lesson.id));
+                          } catch (e) {
+                            alert('Failed to delete lesson');
+                          }
+                        }
+                      }}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" 
+                      title="Delete"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </div>

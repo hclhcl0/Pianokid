@@ -25,6 +25,7 @@ export const useGameLoop = (
   const configRef = useRef<GameConfig | null>(null);
   // midiNumber of the note we are currently waiting for (Wait Mode only)
   const waitingForRef = useRef<number | null>(null);
+  const startTimeOffsetRef = useRef<number>(0);
 
   const [gameState, setGameState] = useState<GameState>({
     isPlaying: false,
@@ -50,6 +51,7 @@ export const useGameLoop = (
       audioContextRef.current.resume();
     }
 
+    startTimeOffsetRef.current = audioContextRef.current.currentTime;
     configRef.current = config;
     notesRef.current = notes
       .slice()
@@ -75,10 +77,10 @@ export const useGameLoop = (
       const cfg = configRef.current;
       if (!ac || !cfg) return;
 
-      const currentTime = ac.currentTime;
-      setGameState(prev => ({ ...prev, currentTime }));
-
       const { lookAheadTime, fallSpeed, waitMode, hitWindowMs, autoPlay } = cfg;
+      const rawTime = ac.currentTime - startTimeOffsetRef.current;
+      const currentTime = rawTime - lookAheadTime;
+      setGameState(prev => ({ ...prev, currentTime }));
 
       // ── Auto-Play Mode: auto hit notes ──────────────────────────────────────
       if (autoPlay) {

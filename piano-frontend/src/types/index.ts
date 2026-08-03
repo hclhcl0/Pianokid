@@ -4,6 +4,7 @@ export interface NoteEvent {
   startTime: number;
   duration: number;
   track: 'left' | 'right';
+  role?: 'root' | 'chord_tone'; // tùy chọn, dùng để lọc chế độ hợp âm
 }
 
 export interface GameConfig {
@@ -37,4 +38,16 @@ export interface MidiInputEvent {
   midiNumber: number;
   velocity: number;
   timestamp: number;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  level: number;
+  midiJsonUrl: string;
+  midiFileUrl?: string;
+  tempo: number;
+  thumbnail?: string;
+  description?: string;
+  isPublished?: boolean;
 }

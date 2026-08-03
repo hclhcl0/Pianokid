@@ -1,0 +1,1561 @@
+{
+  "filename": "999 Doa Hong.mid",
+  "totalNotes": 194,
+  "duration": 190.255,
+  "tempo": 228.8,
+  "timeSignature": "4/4",
+  "notes": [
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 56.6459,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 56.6459,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 56.6459,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 56.9737,
+      "duration": 0.2214,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 57.2359,
+      "duration": 0.2286,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 57.4326,
+      "duration": 1.2732,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 58.7439,
+      "duration": 0.2268,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 58.7439,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 58.7439,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 58.7439,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 58.9406,
+      "duration": 0.2268,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 59.1372,
+      "duration": 1.65,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 60.8419,
+      "duration": 0.4411,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 60.8419,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 60.8419,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 60.8419,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 61.3008,
+      "duration": 0.475,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 61.6942,
+      "duration": 1.7589,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 62.9399,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 62.9399,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 62.9399,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 63.3988,
+      "duration": 1.2982,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 63.9889,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "A#3",
+      "midiNumber": 58,
+      "startTime": 63.9889,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 63.9889,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 64.71,
+      "duration": 0.2571,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 64.9067,
+      "duration": 0.2732,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 65.0379,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 65.0379,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 65.0379,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 65.169,
+      "duration": 1.3196,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 66.0869,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#3",
+      "midiNumber": 51,
+      "startTime": 66.0869,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 66.0869,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 66.4147,
+      "duration": 0.4482,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 66.8736,
+      "duration": 1.4357,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G2",
+      "midiNumber": 43,
+      "startTime": 68.1848,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 68.1848,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 68.1848,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 68.5782,
+      "duration": 0.2661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 68.7749,
+      "duration": 0.2661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 68.9716,
+      "duration": 0.2929,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 69.2338,
+      "duration": 1.1161,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 69.2338,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#3",
+      "midiNumber": 51,
+      "startTime": 69.2338,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 69.2338,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 70.2828,
+      "duration": 0.2696,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 70.2828,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 70.2828,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 70.2828,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 70.4795,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 70.7418,
+      "duration": 0.2696,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 70.9385,
+      "duration": 1.0768,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 71.3318,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 71.3318,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 71.3318,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 71.9875,
+      "duration": 0.3018,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 72.1842,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 72.3808,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 72.3808,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 72.3808,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 72.4464,
+      "duration": 0.3,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 72.6431,
+      "duration": 1.1107,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 73.4298,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 73.4298,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 73.4298,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 73.6921,
+      "duration": 0.25,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 73.9543,
+      "duration": 0.2607,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 74.151,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 74.3477,
+      "duration": 1.0661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 74.4788,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 74.4788,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 74.4788,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 75.3967,
+      "duration": 0.2911,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 75.5278,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 75.5278,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 75.5278,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 75.659,
+      "duration": 0.2821,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 75.8556,
+      "duration": 0.2839,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 76.0523,
+      "duration": 1.1054,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 76.5768,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "A#3",
+      "midiNumber": 58,
+      "startTime": 76.5768,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 76.5768,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 77.1669,
+      "duration": 0.2643,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 77.3636,
+      "duration": 0.3304,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 77.5603,
+      "duration": 0.225,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 77.6258,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 77.6258,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 77.6258,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 77.757,
+      "duration": 1.0786,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E3",
+      "midiNumber": 52,
+      "startTime": 78.6748,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "G#3",
+      "midiNumber": 56,
+      "startTime": 78.6748,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 78.6748,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 78.8715,
+      "duration": 1.6982,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 165.7416,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 165.7416,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 165.7416,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 166.7251,
+      "duration": 0.2214,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 166.7906,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 166.7906,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 166.7906,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 166.9218,
+      "duration": 0.2286,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 167.1184,
+      "duration": 1.2732,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 167.8396,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 167.8396,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 167.8396,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 168.4297,
+      "duration": 0.2268,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 168.6264,
+      "duration": 0.2268,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 168.8886,
+      "duration": 1.65,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 169.9376,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "A#3",
+      "midiNumber": 58,
+      "startTime": 169.9376,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 169.9376,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 170.5932,
+      "duration": 0.4411,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 170.9866,
+      "duration": 0.475,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 170.9866,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 170.9866,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 170.9866,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 171.4456,
+      "duration": 1.7589,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 173.0846,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 173.0846,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 173.0846,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 173.1502,
+      "duration": 1.2982,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 174.1336,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 174.1336,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 174.1336,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 174.3959,
+      "duration": 0.2571,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 174.6581,
+      "duration": 0.2732,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 174.8548,
+      "duration": 1.3196,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 175.1826,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "A#3",
+      "midiNumber": 58,
+      "startTime": 175.1826,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "C#4",
+      "midiNumber": 61,
+      "startTime": 175.1826,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 176.166,
+      "duration": 0.4482,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 176.2316,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#3",
+      "midiNumber": 51,
+      "startTime": 176.2316,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 176.2316,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 176.5594,
+      "duration": 1.4357,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 177.2806,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#3",
+      "midiNumber": 51,
+      "startTime": 177.2806,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 177.2806,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 178.264,
+      "duration": 0.2661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 178.3296,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 178.3296,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 178.3296,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 178.5263,
+      "duration": 0.2661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 178.723,
+      "duration": 0.2929,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 178.9197,
+      "duration": 1.1161,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E3",
+      "midiNumber": 52,
+      "startTime": 179.3786,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "G#3",
+      "midiNumber": 56,
+      "startTime": 179.3786,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 179.3786,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 179.9687,
+      "duration": 0.2696,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 180.2309,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 180.4276,
+      "duration": 0.2696,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G3",
+      "midiNumber": 55,
+      "startTime": 180.4276,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 180.4276,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 180.4276,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 180.6243,
+      "duration": 1.0768,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B2",
+      "midiNumber": 47,
+      "startTime": 181.4766,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 181.4766,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 181.4766,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 181.7388,
+      "duration": 0.3018,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 181.9355,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 182.1322,
+      "duration": 0.3,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 182.3289,
+      "duration": 1.1107,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 182.5256,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 182.5256,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 182.5256,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 183.4435,
+      "duration": 0.25,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 183.5746,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 183.5746,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 183.5746,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 183.6402,
+      "duration": 0.2607,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 183.8368,
+      "duration": 0.2804,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 184.0991,
+      "duration": 1.0661,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "D3",
+      "midiNumber": 50,
+      "startTime": 184.6236,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "F#3",
+      "midiNumber": 54,
+      "startTime": 184.6236,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "A3",
+      "midiNumber": 57,
+      "startTime": 184.6236,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 185.1481,
+      "duration": 0.2911,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 185.3448,
+      "duration": 0.2821,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 185.5415,
+      "duration": 0.2839,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 185.6726,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "D#4",
+      "midiNumber": 63,
+      "startTime": 185.6726,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 185.6726,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B4",
+      "midiNumber": 71,
+      "startTime": 185.8037,
+      "duration": 1.1054,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A2",
+      "midiNumber": 45,
+      "startTime": 186.7216,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "C#3",
+      "midiNumber": 49,
+      "startTime": 186.7216,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E3",
+      "midiNumber": 52,
+      "startTime": 186.7216,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "D4",
+      "midiNumber": 62,
+      "startTime": 186.8527,
+      "duration": 0.2643,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "F#4",
+      "midiNumber": 66,
+      "startTime": 187.0494,
+      "duration": 0.3304,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "G4",
+      "midiNumber": 67,
+      "startTime": 187.3116,
+      "duration": 0.225,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "A4",
+      "midiNumber": 69,
+      "startTime": 187.5083,
+      "duration": 1.0786,
+      "track": "right",
+      "role": "melody"
+    },
+    {
+      "note": "E3",
+      "midiNumber": 52,
+      "startTime": 187.7706,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "root"
+    },
+    {
+      "note": "G#3",
+      "midiNumber": 56,
+      "startTime": 187.7706,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "B3",
+      "midiNumber": 59,
+      "startTime": 187.7706,
+      "duration": 0.9989976685672439,
+      "track": "left",
+      "role": "chord_tone"
+    },
+    {
+      "note": "E4",
+      "midiNumber": 64,
+      "startTime": 188.5573,
+      "duration": 1.6982,
+      "track": "right",
+      "role": "melody"
+    }
+  ]
+}

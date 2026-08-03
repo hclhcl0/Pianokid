@@ -23,6 +23,7 @@ class ParseResponse(BaseModel):
     totalNotes: int
     duration: float
     tempo: float
+    timeSignature: str
     notes: List[NoteEvent]
 
 class UrlRequest(BaseModel):
@@ -51,6 +52,7 @@ def _process_midi_file(file_path: str, filename: str) -> ParseResponse:
             totalNotes=len(notes),
             duration=duration,
             tempo=tempo,
+            timeSignature=parser.time_signature,
             notes=notes
         )
     except Exception as e:
@@ -58,15 +60,27 @@ def _process_midi_file(file_path: str, filename: str) -> ParseResponse:
 
 @app.post("/parse", response_model=ParseResponse)
 async def parse_midi(file: UploadFile = File(...)):
-    """Parses an uploaded MIDI file."""
-    if not file.filename.endswith(('.mid', '.midi')):
-        raise HTTPException(status_code=400, detail="Must be a .mid or .midi file")
+    """Parses an uploaded MIDI or MusicXML file."""
+    if not file.filename.endswith(('.mid', '.midi', '.xml', '.mxl')):
+        raise HTTPException(status_code=400, detail="Must be a .mid, .midi, .xml, or .mxl file")
         
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mid") as temp_file:
+        suffix = os.path.splitext(file.filename)[1].lower()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             content = await file.read()
             temp_file.write(content)
             temp_path = temp_file.name
+            
+        if suffix in ['.xml', '.mxl']:
+            import music21
+            try:
+                score = music21.converter.parse(temp_path)
+                mid_path = temp_path + ".mid"
+                score.write('midi', fp=mid_path)
+                os.remove(temp_path)
+                temp_path = mid_path
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Failed to convert MusicXML to MIDI: {e}")
             
         response = _process_midi_file(temp_path, file.filename)
         return response

@@ -121,11 +121,11 @@ export default function NewLessonPage() {
           <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                <Upload size={16} className="inline mr-1" /> MIDI File (.mid) *
+                <Upload size={16} className="inline mr-1" /> MIDI/XML File (.mid, .xml, .mxl) *
               </label>
               <input 
                 type="file"
-                accept=".mid,.midi"
+                accept=".mid,.midi,.xml,.mxl"
                 {...register('midiFile')} 
                 className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
