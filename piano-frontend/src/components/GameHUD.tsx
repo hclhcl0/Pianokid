@@ -6,9 +6,10 @@ interface GameHUDProps {
   stars: number;
   waitMode: boolean;
   onPause: () => void;
+  onSettings: () => void;
 }
 
-export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, onPause }) => {
+export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, onPause, onSettings }) => {
   return (
     <div className="hud-container">
       <div className="hud-top">
@@ -25,11 +26,21 @@ export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode,
           </div>
         </div>
 
-        <div className="combo-badge glass">
-          <span className="label">COMBO</span>
-          <span className={`value ${combo > 5 ? 'comboFlash' : ''}`}>
-            {combo}x {combo > 5 && '🔥'}
-          </span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <div className="combo-badge glass">
+            <span className="label">COMBO</span>
+            <span className={`value ${combo > 5 ? 'comboFlash' : ''}`}>
+              {combo}x {combo > 5 && '🔥'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+            <button className="pause-btn glass" onClick={onPause} style={{ fontSize: 22, padding: '8px 14px' }} title="Tạm dừng">
+              ⏸
+            </button>
+            <button className="pause-btn glass" onClick={onSettings} style={{ fontSize: 22, padding: '8px 14px' }} title="Cài đặt">
+              ⚙️
+            </button>
+          </div>
         </div>
       </div>
       
@@ -37,9 +48,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode,
         <div className="mode-badge glass">
           {waitMode ? 'WAIT MODE' : 'STANDARD MODE'}
         </div>
-        <button className="pause-btn glass" onClick={onPause}>
-          ⏸ PAUSE
-        </button>
       </div>
     </div>
   );

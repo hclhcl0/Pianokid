@@ -9,41 +9,41 @@ datasource db {
 
 model User {
   id        String     @id @default(uuid())
-  role      String     @default("KID") // ADMIN, PARENT, KID
+  role      String     @default("KID")
   name      String
   parentId  String?
-  parent    User?      @relation("ParentChild", fields: [parentId], references: [id])
-  children  User[]     @relation("ParentChild")
-  progress  Progress[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  progress  Progress[]
+  parent    User?      @relation("ParentChild", fields: [parentId], references: [id])
+  children  User[]     @relation("ParentChild")
 }
 
 model Lesson {
-  id          String     @id @default(uuid())
-  title       String
-  level       Int        @default(1)
-  midiJsonUrl String
-  midiFileUrl String?    // original .mid file URL
-  sheetMusicUrl String?  // PDF sheet music URL
-  tempo       Int
-  thumbnail   String?    // cover image URL
-  description String?
-  isPublished Boolean    @default(false)
-  progress    Progress[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(uuid())
+  title         String
+  level         Int        @default(1)
+  midiJsonUrl   String
+  midiFileUrl   String?
+  tempo         Int
+  thumbnail     String?
+  description   String?
+  isPublished   Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  sheetMusicUrl String?
+  progress      Progress[]
 }
 
 model Progress {
-  id          String   @id @default(uuid())
-  userId      String
-  lessonId    String
-  score       Int      @default(0)
-  stars       Int      @default(0)
-  accuracy    Float    @default(0)
-  completed   Boolean  @default(false)
-  playedAt    DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
-  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  id        String   @id @default(uuid())
+  userId    String
+  lessonId  String
+  score     Int      @default(0)
+  stars     Int      @default(0)
+  accuracy  Float    @default(0)
+  completed Boolean  @default(false)
+  playedAt  DateTime @default(now())
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }

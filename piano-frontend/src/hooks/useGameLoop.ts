@@ -39,6 +39,16 @@ export const useGameLoop = (
   // Separate reactive state so GameCanvas / HUD can react to waiting note
   const [waitingForNote, setWaitingForNote] = useState<number | null>(null);
   const [activeNotes, setActiveNotes] = useState<ActiveNote[]>([]);
+  const activeNotesHashRef = useRef<string>('');
+  
+  const onDrawCallbacksRef = useRef<((currentTime: number, visible: ActiveNote[]) => void)[]>([]);
+
+  const registerDrawCallback = useCallback((cb: (currentTime: number, visible: ActiveNote[]) => void) => {
+    onDrawCallbacksRef.current.push(cb);
+    return () => {
+      onDrawCallbacksRef.current = onDrawCallbacksRef.current.filter(x => x !== cb);
+    };
+  }, []);
 
   // ─── Start ──────────────────────────────────────────────────────────────────
   const startGame = useCallback((notes: NoteEvent[], config: GameConfig) => {
@@ -51,7 +61,11 @@ export const useGameLoop = (
       audioContextRef.current.resume();
     }
 
-    startTimeOffsetRef.current = audioContextRef.current.currentTime;
+    const firstNoteTime = notes.length > 0 ? Math.min(...notes.map(n => n.startTime)) : 0;
+    // Skip empty silence at the beginning, but shift back by 3.0 seconds to give the player 
+    // a 3.0-second countdown delay before the notes start appearing and falling.
+    startTimeOffsetRef.current = audioContextRef.current.currentTime - (firstNoteTime - 3.0);
+    
     configRef.current = config;
     notesRef.current = notes
       .slice()
@@ -80,7 +94,6 @@ export const useGameLoop = (
       const { lookAheadTime, fallSpeed, waitMode, hitWindowMs, autoPlay } = cfg;
       const rawTime = ac.currentTime - startTimeOffsetRef.current;
       const currentTime = rawTime - lookAheadTime;
-      setGameState(prev => ({ ...prev, currentTime }));
 
       // ── Auto-Play Mode: auto hit notes ──────────────────────────────────────
       if (autoPlay) {
@@ -131,26 +144,26 @@ export const useGameLoop = (
         }
       });
 
-      // ── Build visible notes (only those inside the look-ahead window) ────────
+      // Build visible notes
       const visible = notesRef.current
         .map(note => ({
           ...note,
           y: (currentTime - (note.startTime - lookAheadTime)) * fallSpeed,
-          isWaiting:
-            waitMode &&
-            waitingForRef.current === note.midiNumber &&
-            !note.hit,
+          isWaiting: waitMode && waitingForRef.current === note.midiNumber && !note.hit,
           isHeld: note.isHeld,
         }))
         .filter(note => {
-          // Keep notes that are within the visible canvas area
-          const inWindow =
-            note.startTime - lookAheadTime <= currentTime &&
-            currentTime <= note.startTime + note.duration + 1.0;
-          return inWindow;
+          return note.startTime - lookAheadTime <= currentTime && currentTime <= note.startTime + note.duration + 1.0;
         });
 
-      setActiveNotes(visible);
+      // Compute a hash of what notes are visible and their status
+      const visibleHash = visible.map(n => `${n.midiNumber}_${n.startTime}_${n.hit}_${n.missed}`).join(',');
+      if (activeNotesHashRef.current !== visibleHash) {
+        activeNotesHashRef.current = visibleHash;
+        setActiveNotes(visible);
+      }
+
+      onDrawCallbacksRef.current.forEach(cb => cb(currentTime, visible));
       animationFrameRef.current = requestAnimationFrame(loop);
     };
 
@@ -301,5 +314,6 @@ export const useGameLoop = (
     stopGame,
     processNoteHit,
     processNoteOff,
+    registerDrawCallback,
   };
 };

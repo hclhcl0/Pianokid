@@ -21,7 +21,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function NewLessonPage() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, getValues, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       level: 1,
@@ -126,7 +126,19 @@ export default function NewLessonPage() {
               <input 
                 type="file"
                 accept=".mid,.midi,.xml,.mxl"
-                {...register('midiFile')} 
+                {...register('midiFile', {
+                  onChange: (e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      const file = files[0];
+                      const title = file.name.replace(/\.[^/.]+$/, ""); // Strip extension
+                      const currentTitle = getValues('title');
+                      if (!currentTitle || currentTitle.trim() === '') {
+                         setValue('title', title, { shouldValidate: true });
+                      }
+                    }
+                  }
+                })} 
                 className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
             </div>

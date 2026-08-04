@@ -35,6 +35,11 @@ export function calcOptimalOctaves(screenWidth: number, minWhiteKeyPx = 42): num
   return 5; // màn hình rộng → 5 quãng
 }
 
+// Helper to get absolute white index for any MIDI note
+export function getAbsoluteWhiteIndex(midi: number): number {
+  return Math.floor(midi / 12) * 7 + notesInOctave[midi % 12].whiteIndex;
+}
+
 /**
  * Tạo KeyboardRange căn giữa bài nhạc.
  * @param songMidiMin  nốt MIDI thấp nhất trong bài
@@ -46,28 +51,25 @@ export function buildKeyboardRange(
   songMidiMax: number,
   numOctaves: number
 ): KeyboardRange {
-  const numKeys = numOctaves * 12 + 1; // +1 cho nốt C cuối
-  const numWhiteKeys = numOctaves * 7 + 1;
+  // Thay vì cố định numOctaves, ta tính theo tổng số phím trắng
+  const numWhiteKeys = numOctaves * 7;
+  const numKeys = numOctaves * 12;
 
   // Căn giữa: mid của bài nằm giữa keyboard
   const songMid = Math.round((songMidiMin + songMidiMax) / 2);
   const keyboardMid = Math.round(numKeys / 2);
 
-  // Điều chỉnh startMidi sao cho là C (mod 12 == 0)
   let startMidi = songMid - keyboardMid;
-  // Snap về C gần nhất
-  const remainder = startMidi % 12;
-  if (remainder !== 0) startMidi -= remainder; // làm tròn xuống C
 
   // Clamp: đảm bảo tất cả nốt của bài đều nằm trong keyboard
-  while (startMidi > songMidiMin) startMidi -= 12;
-  while (startMidi + numKeys - 1 < songMidiMax) startMidi += 12;
-  // Nếu vẫn không chứa hết (bài rộng hơn keyboard), ưu tiên melody
+  while (startMidi > songMidiMin) startMidi--;
+  while (startMidi + numKeys < songMidiMax) startMidi++;
   startMidi = Math.max(0, Math.min(startMidi, 108 - numKeys));
-  // Snap về C
-  const r2 = startMidi % 12;
-  if (r2 !== 0) startMidi -= r2;
-  startMidi = Math.max(0, startMidi);
+
+  // Snap về phím trắng gần nhất (không cần phải là C)
+  while (notesInOctave[startMidi % 12].type !== 'white') {
+    startMidi--; // Lùi về phím trắng
+  }
 
   return { startMidi, numKeys, numOctaves, numWhiteKeys };
 }
@@ -107,27 +109,24 @@ export function getPianoKeyLayout(
   canvasWidth: number,
   range: KeyboardRange = DEFAULT_RANGE
 ): KeyLayout | null {
-  const { startMidi, numOctaves, numWhiteKeys } = range;
+  const { startMidi, numKeys, numWhiteKeys } = range;
   const whiteKeyWidth = canvasWidth / numWhiteKeys;
 
-  const offset = midiNumber - startMidi;
-  if (offset < 0 || offset >= numOctaves * 12 + 1) return null;
+  if (midiNumber < startMidi || midiNumber >= startMidi + numKeys) return null;
 
-  const octave = Math.floor(offset / 12);
-  const semitone = offset % 12;
-  const noteInfo = notesInOctave[semitone];
-  const absoluteWhiteIndex = octave * 7 + noteInfo.whiteIndex;
+  const noteInfo = notesInOctave[midiNumber % 12];
+  const relativeWhiteIndex = getAbsoluteWhiteIndex(midiNumber) - getAbsoluteWhiteIndex(startMidi);
 
   if (noteInfo.type === 'white') {
     return {
       type: 'white',
-      x: absoluteWhiteIndex * whiteKeyWidth,
+      x: relativeWhiteIndex * whiteKeyWidth,
       width: whiteKeyWidth,
-      centerX: absoluteWhiteIndex * whiteKeyWidth + whiteKeyWidth / 2,
+      centerX: relativeWhiteIndex * whiteKeyWidth + whiteKeyWidth / 2,
     };
   } else {
     const blackKeyWidth = whiteKeyWidth * 0.6;
-    const x = absoluteWhiteIndex * whiteKeyWidth + whiteKeyWidth - blackKeyWidth / 2;
+    const x = relativeWhiteIndex * whiteKeyWidth + whiteKeyWidth - blackKeyWidth / 2;
     return {
       type: 'black',
       x,

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { GameCanvas } from './GameCanvas';
 import { GameHUD } from './GameHUD';
+import { SheetView } from './SheetView';
+import { VexFlowView } from './VexFlowView';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useMidiDevice } from '../hooks/useMidiDevice';
 import { useScoring } from '../hooks/useScoring';
@@ -50,12 +52,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [speed, setSpeed] = useState<number>(1);
   const [chordMode, setChordMode] = useState<'simple' | 'full' | 'arpeggio'>('simple');
+  const [viewMode, setViewMode] = useState<'falling' | 'sheet'>('sheet');
+  const [sheetMusicEngine, setSheetMusicEngine] = useState<'osmd' | 'vexflow'>('osmd');
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
   const effectsCanvasRef = useRef<HTMLCanvasElement>(null);
   const particleSystem = useRef<ParticleSystem | null>(null);
   const [loadedNotes, setLoadedNotes] = useState<NoteEvent[]>([]);
   const [timeSignature, setTimeSignature] = useState<string>('4/4');
+  const [songTempo, setSongTempo] = useState<number>(lesson.tempo);
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [notesError, setNotesError] = useState<string | null>(null);
   const [gameStats, setGameStats] = useState({ hitNotes: 0, totalNotes: 0, maxCombo: 0 });
@@ -64,6 +69,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const [currentChordName, setCurrentChordName] = useState<string>('');
   const lastNoteEndTimeRef = useRef<number>(0);
   const [userActiveKeys, setUserActiveKeys] = useState<Set<number>>(new Set());
+  const userActiveKeysRef = useRef<Set<number>>(new Set());
+
+  // Keep ref in sync
+  useEffect(() => {
+    userActiveKeysRef.current = userActiveKeys;
+  }, [userActiveKeys]);
+  
   const [keyboardRange, setKeyboardRange] = useState<KeyboardRange>(DEFAULT_RANGE);
   const [numOctaves, setNumOctaves] = useState<number>(5); // sẽ được tính lại sau khi load notes
 
@@ -82,6 +94,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
         const data = await res.json();
         setLoadedNotes(data.notes || []);
         setTimeSignature(data.timeSignature || '4/4');
+        if (data.tempo) {
+          setSongTempo(data.tempo);
+        }
       } catch (err: any) {
         setNotesError(err.message);
       } finally {
@@ -89,7 +104,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       }
     };
     fetchNotes();
-  }, [lesson.midiJsonUrl]);
+  }, [lesson.midiJsonUrl, lesson.tempo]);
 
 
   useEffect(() => {
@@ -155,8 +170,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5);
     const hitZoneY = dimensions.height - keyHeight;
     const lookAheadTime = Math.min(hitZoneY / fallSpeed, 3.0); // tối đa 3 giây nhìn trước
-    return { fallSpeed, lookAheadTime, hitWindowMs: 250, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled };
-  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed]);
+    return { fallSpeed, lookAheadTime, hitWindowMs: 250, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed };
+  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine]);
 
 
   const { score, combo, stars, addHit, addMiss, calculateHit } = useScoring();
@@ -197,7 +212,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 800);
   }, [addMiss, dimensions]);
 
-  const { gameState, activeNotes, waitingForNote, startGame, pauseGame, resumeGame, stopGame, processNoteHit, processNoteOff } = useGameLoop(handleHit, handleMiss);
+  const { gameState, activeNotes, waitingForNote, startGame, pauseGame, resumeGame, stopGame, processNoteHit, processNoteOff, registerDrawCallback } = useGameLoop(handleHit, handleMiss);
 
   const { isConnected, error: midiError } = useMidiDevice(
     e => {
@@ -245,35 +260,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, [hasStarted, showEndGame, processNoteHit, processNoteOff, config.hitWindowMs, calculateHit]);
 
-  const handleStart = useCallback(() => {
-    if (loadedNotes.length === 0) return;
-    soundEffects.init();
-    
+
+  const displayNotes = useMemo(() => {
     let processedNotes = [...loadedNotes];
 
-    // ── Auto-transpose tay trái nếu quá trầm so với giai điệu ──────────────
-    // Tính tầm giai điệu tay phải
-    const rightNotesMidi = loadedNotes.filter(n => n.track === 'right').map(n => n.midiNumber);
-    if (rightNotesMidi.length > 0) {
-      const melodyMin = Math.min(...rightNotesMidi);
-      // Tay trái lý tưởng: từ (melodyMin - 12) đến (melodyMin - 1)
-      const idealBassMax = melodyMin - 1;
-      const idealBassMin = melodyMin - 13;
+    // Trong chế độ Bản nhạc (sheet), phải giữ nguyên toàn bộ nốt như file MIDI/XML gốc
+    // để phím đàn cần bấm khớp 100% với nốt hiển thị trên sheet nhạc.
+    if (viewMode === 'sheet') {
+      return processedNotes;
+    }
 
-      processedNotes = processedNotes.map(n => {
-        if (n.track !== 'left') return n;
-        let midi = n.midiNumber;
-        // Shift lên cho đến khi nằm trong vùng lý tưởng
-        while (midi < idealBassMin && midi + 12 <= idealBassMax) midi += 12;
-        // Shift xuống nếu vô tình vượt lên quá cao
-        while (midi > idealBassMax && midi - 12 >= idealBassMin) midi -= 12;
-        if (midi === n.midiNumber) return n;
-        return {
-          ...n,
-          midiNumber: midi,
-          note: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12] + Math.floor(midi / 12 - 1),
-        };
-      });
+    const rightNotesMidi = loadedNotes.filter(n => n.track === 'right').map(n => n.midiNumber);
+    if (rightNotesMidi.length > 0 && chordMode === 'full') {
+      // Keep notes exactly as they are in the MIDI file
+      // Removed auto-transposing logic so falling notes match the sheet music perfectly.
     }
 
     if (chordMode === 'arpeggio') {
@@ -317,26 +317,73 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       processedNotes = [...rightNotes, ...newLeftNotes];
     }
 
+    if (chordMode === 'simple') {
+      // Keep only the lowest note per startTime group (bass root)
+      // This works even if the backend hasn't assigned 'role' yet
+      const rightNotes = processedNotes.filter(n => n.track === 'right');
+      const leftNotes  = processedNotes.filter(n => n.track === 'left');
+
+      // Group left notes by startTime (with 50ms tolerance)
+      const leftBass: NoteEvent[] = [];
+      const usedTimes = new Set<number>();
+
+      // Sort by startTime then midiNumber (lowest first)
+      const sortedLeft = [...leftNotes].sort((a, b) =>
+        a.startTime !== b.startTime ? a.startTime - b.startTime : a.midiNumber - b.midiNumber
+      );
+
+      for (const n of sortedLeft) {
+        // Check if this startTime is already covered (within 50ms)
+        const alreadyCovered = Array.from(usedTimes).some(t => Math.abs(t - n.startTime) < 0.05);
+        if (!alreadyCovered) {
+          leftBass.push(n);  // first note at this time = lowest = bass root
+          usedTimes.add(n.startTime);
+        }
+      }
+
+      // Extend each bass note's duration to fill the full measure so VexFlow
+      // renders a clean whole note (no leftover rest symbols)
+      const [beatsPerMeasure] = timeSignature.split('/').map(Number);
+      const tempo = lesson?.tempo ?? 120;
+      const beatsPerMeasureSec = beatsPerMeasure * (60 / tempo);
+
+      const stretchedBass = leftBass.map((n, idx) => {
+        const nextStart = idx + 1 < leftBass.length ? leftBass[idx + 1].startTime : n.startTime + beatsPerMeasureSec;
+        const fillDur = Math.max(beatsPerMeasureSec, nextStart - n.startTime);
+        return {
+          ...n,
+          duration:     fillDur,
+          durationBeat: fillDur * (tempo / 60),
+        };
+      });
+
+      return [...rightNotes, ...stretchedBass];
+    }
+
+    // For other modes, keep all notes (full/arpeggio already processed above)
+    return processedNotes;
+  }, [loadedNotes, chordMode, timeSignature, lesson]);
+
+  const handleStart = useCallback(() => {
+    if (loadedNotes.length === 0) return;
+    soundEffects.init();
+
+
     {
       const leftNotes = loadedNotes.filter(n => n.track === 'left');
       const startTimes = Array.from(new Set(leftNotes.map(n => n.startTime))).sort((a,b)=>a-b);
       chordTimelineRef.current = startTimes.map(t => {
         const chord = leftNotes.filter(n => n.startTime === t);
         const name = getChordName(chord.map(n => n.midiNumber));
-        return { time: t / speed + 3, name };
+        return { time: t / speed, name };
       });
     }
     
-    const finalNotes = processedNotes
-      .filter(note => {
-        if (note.track === 'left' && chordMode === 'simple' && note.role === 'chord_tone') return false;
-        return true;
-      })
-      .map(note => ({
-        ...note,
-        startTime: (note.startTime / speed) + 3,
-        duration: note.duration / speed,
-      }));
+    const finalNotes = displayNotes.map(note => ({
+      ...note,
+      startTime: (note.startTime / speed),
+      duration: note.duration / speed,
+    }));
 
     setHasStarted(true);
     setShowEndGame(false);
@@ -350,7 +397,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     }
 
     startGame(finalNotes, config);
-  }, [loadedNotes, chordMode, speed, config, startGame, timeSignature]);
+  }, [loadedNotes, displayNotes, speed, config, startGame, lesson]);
 
   useEffect(() => {
     if (countdownValue === null) return;
@@ -423,18 +470,33 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             ))}
           </div>
 
+          {viewMode === 'falling' && (
+            <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <span style={{ fontSize: 16, opacity: 0.9 }}>🎸 Hợp âm (Trái)</span>
+              <button onClick={() => setChordMode('simple')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'simple' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                Đơn giản (Bass)
+              </button>
+              <button onClick={() => setChordMode('full')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'full' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                Đầy đủ (Chord)
+              </button>
+              <button onClick={() => setChordMode('arpeggio')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'arpeggio' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                Rải (Arpeggio)
+              </button>
+            </div>
+          )}
+
           <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>🎸 Hợp âm (Trái)</span>
-            <button onClick={() => setChordMode('simple')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'simple' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              Đơn giản (Bass)
+            <span style={{ fontSize: 16, opacity: 0.9 }}>👁️ Giao diện</span>
+            <button onClick={() => setViewMode('falling')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: viewMode === 'falling' ? 'linear-gradient(135deg,#8E2DE2,#4A00E0)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+              Nốt rơi
             </button>
-            <button onClick={() => setChordMode('full')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'full' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              Đầy đủ (Chord)
-            </button>
-            <button onClick={() => setChordMode('arpeggio')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'arpeggio' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              Rải (Arpeggio)
+            <button onClick={() => setViewMode('sheet')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: viewMode === 'sheet' ? 'linear-gradient(135deg,#8E2DE2,#4A00E0)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+              Bản nhạc
             </button>
           </div>
+
+          {/* Removed VexFlow vs OSMD toggle. Now exclusively using robust OSMD. */}
+
 
           {/* ── Số quãng bàn phím ─────────────────────────────── */}
           <div style={{ margin: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
@@ -473,9 +535,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
         </div>
       ) : (
         <>
-          <GameCanvas activeNotes={activeNotes} userActiveKeys={userActiveKeys} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height} waitingForNote={waitingForNote} keyboardRange={keyboardRange} />
+          {viewMode === 'falling' ? (
+            <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height} waitingForNote={waitingForNote} keyboardRange={keyboardRange} />
+          ) : (
+            sheetMusicEngine === 'osmd' ? (
+              <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} />
+            ) : (
+              <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} />
+            )
+          )}
           <canvas ref={effectsCanvasRef} width={dimensions.width} height={dimensions.height} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
-          <GameHUD score={score} combo={combo} stars={stars} waitMode={config.waitMode} onPause={isPaused ? resumeGame : pauseGame} />
+          <GameHUD score={score} combo={combo} stars={stars} waitMode={config.waitMode} onPause={isPaused ? resumeGame : pauseGame} onSettings={() => { stopGame(); setHasStarted(false); }} />
           
           {currentChordName && (
             <div style={{ position: 'absolute', bottom: Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5) + 12, left: 16, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>

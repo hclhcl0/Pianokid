@@ -52,9 +52,14 @@ router.post('/lesson', upload.fields([
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     
     const midiFileUrl = `${baseUrl}/uploads/midi/${midiFile.filename}`;
-    let sheetMusicUrl = undefined;
+    let sheetMusicUrl: string | undefined = undefined;
     if (sheetFile) {
-      sheetMusicUrl = `${baseUrl}/uploads/pdf/${sheetFile.filename}`;
+      const ext = path.extname(sheetFile.originalname).toLowerCase();
+      let subfolder = 'misc';
+      if (ext === '.mid' || ext === '.midi' || ext === '.xml' || ext === '.mxl') subfolder = 'midi';
+      else if (ext === '.pdf') subfolder = 'pdf';
+      else if (['.png', '.jpg', '.jpeg'].includes(ext)) subfolder = 'images';
+      sheetMusicUrl = `${baseUrl}/uploads/${subfolder}/${sheetFile.filename}`;
     }
     let thumbnailUrl = undefined;
     if (thumbnailFile) {
@@ -83,6 +88,23 @@ router.post('/lesson', upload.fields([
     fs.writeFileSync(jsonPath, JSON.stringify(midiJsonData));
     
     const midiJsonUrl = `${baseUrl}/uploads/json/${jsonFilename}`;
+
+    // If midi-service returned XML content, save it and use it as sheetMusicUrl if no PDF was uploaded
+    if (midiJsonData.xml_content) {
+      const xmlFilename = `score-${Date.now()}.xml`;
+      const xmlDir = path.join(process.cwd(), 'public', 'uploads', 'xml');
+      fs.mkdirSync(xmlDir, { recursive: true });
+      const xmlPath = path.join(xmlDir, xmlFilename);
+      fs.writeFileSync(xmlPath, midiJsonData.xml_content);
+      
+      if (!sheetMusicUrl) {
+        sheetMusicUrl = `${baseUrl}/uploads/xml/${xmlFilename}`;
+      }
+      
+      // Remove xml_content from JSON to save space before writing
+      delete midiJsonData.xml_content;
+      fs.writeFileSync(jsonPath, JSON.stringify(midiJsonData));
+    }
 
     // Create Lesson in database
     const lesson = await prisma.lesson.create({

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import tempfile
 import os
 import requests
@@ -25,16 +25,22 @@ class ParseResponse(BaseModel):
     tempo: float
     timeSignature: str
     notes: List[NoteEvent]
+    xml_content: Optional[str] = None
 
 class UrlRequest(BaseModel):
     url: str
+
+@app.get("/")
+def read_root():
+    """Root endpoint."""
+    return {"message": "KidsPiano MIDI Parser Service is running. Access the frontend at http://localhost:3000"}
 
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
     return {"status": "ok", "service": "KidsPiano MIDI Parser"}
 
-def _process_midi_file(file_path: str, filename: str) -> ParseResponse:
+def _process_midi_file(file_path: str, filename: str, xml_content: Optional[str] = None) -> ParseResponse:
     """Helper method to process a MIDI file on disk and return a ParseResponse."""
     try:
         midi_data = pretty_midi.PrettyMIDI(file_path)
@@ -53,7 +59,8 @@ def _process_midi_file(file_path: str, filename: str) -> ParseResponse:
             duration=duration,
             tempo=tempo,
             timeSignature=parser.time_signature,
-            notes=notes
+            notes=notes,
+            xml_content=xml_content
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -71,18 +78,103 @@ async def parse_midi(file: UploadFile = File(...)):
             temp_file.write(content)
             temp_path = temp_file.name
             
+        xml_content = None
         if suffix in ['.xml', '.mxl']:
             import music21
             try:
                 score = music21.converter.parse(temp_path)
                 mid_path = temp_path + ".mid"
                 score.write('midi', fp=mid_path)
+                
+                # Re-export as uncompressed XML so the frontend gets a clean text string
+                xml_out_path = temp_path + "_uncompressed.musicxml"
+                score.write('musicxml', fp=xml_out_path)
+                with open(xml_out_path, 'r', encoding='utf-8') as f:
+                    xml_content = f.read()
+                os.remove(xml_out_path)
+                
                 os.remove(temp_path)
                 temp_path = mid_path
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Failed to convert MusicXML to MIDI: {e}")
+                raise HTTPException(status_code=400, detail=f"Failed to process MusicXML file: {e}")
+        else:
+            # If it's a MIDI file, attempt to generate XML
+            import music21
+            try:
+                score = music21.converter.parse(temp_path)
+                
+                parts = list(score.getElementsByClass('Part'))
+                valid_parts = []
+                for p in parts:
+                    notes = list(p.recurse().notes)
+                    unpitched = sum(1 for n in notes if isinstance(n, music21.note.Unpitched))
+                    if unpitched > 0 or len(notes) == 0:
+                        score.remove(p)
+                    else:
+                        valid_parts.append(p)
+                        
+                if len(valid_parts) > 2:
+                    valid_parts.sort(key=lambda p: len(p.recurse().notesAndRests), reverse=True)
+                    for p in valid_parts[2:]:
+                        score.remove(p)
+                
+                valid_parts = valid_parts[:2]
+                
+                # Split single track into two (Grand Staff) based on Middle C
+                if len(valid_parts) == 1:
+                    import copy
+                    main_part = valid_parts[0]
+                    left_part = copy.deepcopy(main_part)
+                    right_part = main_part
+                    
+                    for n in list(right_part.recurse().notes):
+                        if getattr(n, 'isNote', False) and n.pitch.midi < 60:
+                            n.activeSite.remove(n)
+                        elif getattr(n, 'isChord', False) and all(p.midi < 60 for p in n.pitches):
+                            n.activeSite.remove(n)
+                            
+                    for n in list(left_part.recurse().notes):
+                        if getattr(n, 'isNote', False) and n.pitch.midi >= 60:
+                            n.activeSite.remove(n)
+                        elif getattr(n, 'isChord', False) and all(p.midi >= 60 for p in n.pitches):
+                            n.activeSite.remove(n)
+                            
+                    score.insert(0, left_part)
+                    valid_parts = [right_part, left_part]
+
+                avg_pitches = []
+                for p in valid_parts:
+                    pitches = []
+                    for n in p.recurse().notes:
+                        if getattr(n, 'isNote', False): pitches.append(n.pitch.midi)
+                        elif getattr(n, 'isChord', False): pitches.extend([pitch.midi for pitch in n.pitches])
+                    avg_pitches.append(sum(pitches) / max(1, len(pitches)))
+                
+                for i, p in enumerate(valid_parts):
+                    is_bass = False
+                    if len(valid_parts) == 2:
+                        is_bass = (i == 0 and avg_pitches[0] < avg_pitches[1]) or (i == 1 and avg_pitches[1] <= avg_pitches[0])
+                    
+                    c = music21.clef.BassClef() if is_bass else music21.clef.TrebleClef()
+                    p.insert(0, c)
+                        
+                # Quantize to 16th and 8th notes to remove timing jitter
+                score.quantize((8, 16), inPlace=True)
+                
+                xml_out_path = temp_path + ".musicxml"
+                score.write('musicxml', fp=xml_out_path)
+                with open(xml_out_path, 'r', encoding='utf-8') as f:
+                    xml_content = f.read()
+                os.remove(xml_out_path)
+                
+                # IMPORTANT: Write the quantized score back to the temp_path as a MIDI file!
+                # This ensures the JSON parsed later uses the exact same perfectly snapped timings as the XML.
+                score.write('midi', fp=temp_path)
+            except Exception as e:
+                # It's okay if it fails, xml_content will be None, and JSON will use the original MIDI
+                print(f"Failed to generate XML from MIDI: {e}")
             
-        response = _process_midi_file(temp_path, file.filename)
+        response = _process_midi_file(temp_path, file.filename, xml_content)
         return response
     finally:
         if 'temp_path' in locals() and os.path.exists(temp_path):

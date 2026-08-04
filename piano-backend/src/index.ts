@@ -31,6 +31,10 @@ app.use('/api/lessons', lessonsRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/upload', uploadRouter);
 
+app.get('/', (req, res) => {
+  res.send('KidsPiano Backend API is running! Access the frontend at http://localhost:3000');
+});
+
 app.get('/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;

@@ -2,30 +2,34 @@ import React, { useRef, useEffect } from 'react';
 import { ActiveNote, GameConfig } from '../types';
 import { getPianoKeyLayout, KeyboardRange, DEFAULT_RANGE, MIDI_TO_KEY } from '../lib/pianoLayout';
 
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const NOTE_NAMES = [
+  'C (Do)', 'C#', 'D (Re)', 'D#', 'E (Mi)', 'F (Fa)', 
+  'F#', 'G (Sol)', 'G#', 'A (La)', 'A#', 'B (Si)'
+];
 
 interface GameCanvasProps {
-  activeNotes: ActiveNote[];
+  registerDrawCallback: (cb: (currentTime: number, activeNotes: ActiveNote[]) => void) => () => void;
   config: GameConfig;
   canvasWidth: number;
   canvasHeight: number;
   waitingForNote: number | null;
-  userActiveKeys?: Set<number>;
+  userActiveKeysRef?: React.MutableRefObject<Set<number>>;
   keyboardRange?: KeyboardRange;
+  showFingering?: boolean;
 }
 
-export const GameCanvas: React.FC<GameCanvasProps> = ({
-  activeNotes,
+export const GameCanvas: React.FC<GameCanvasProps> = React.memo(({
+  registerDrawCallback,
   config,
   canvasWidth,
   canvasHeight,
   waitingForNote,
-  userActiveKeys = new Set(),
+  userActiveKeysRef,
   keyboardRange = DEFAULT_RANGE,
+  showFingering = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const phaseRef = useRef<number>(0);
-  const rafRef = useRef<number>();
   const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, life: number, size: number, color: string}[]>([]);
 
   useEffect(() => {
@@ -34,7 +38,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const draw = () => {
+    const unregister = registerDrawCallback((currentTime, activeNotes) => {
       phaseRef.current += 0.05;
       const pulse = (Math.sin(phaseRef.current) + 1) / 2;
 
@@ -104,7 +108,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
         if (layout && layout.type === 'white') {
           const isWaiting = waitingForNote === midiNum;
-          const isActive = activeKeys.has(midiNum) || userActiveKeys.has(midiNum);
+          const isPhysicallyActive = userActiveKeysRef?.current.has(midiNum);
+          const isActive = activeKeys.has(midiNum) || isPhysicallyActive;
           
           ctx.save();
           if (isWaiting || isActive) {
@@ -128,12 +133,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.stroke();
 
           // Draw note text on white keys
-          ctx.fillStyle = '#000000';
-          ctx.font = `900 ${Math.max(14, layout.width * 0.5)}px "Nunito", sans-serif`; // To và đậm hơn
-          ctx.textAlign = 'center';
-          // Nâng lên một chút để chữ to không chạm viền đáy
-          ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentKeyHeight - 12);
-          
+          if (showFingering) {
+            ctx.fillStyle = '#000000';
+            ctx.font = `bold ${Math.max(9, layout.width * 0.22)}px Nunito, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentKeyHeight - 15);
+          }
           ctx.restore();
         }
       }
@@ -144,7 +149,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
         if (layout && layout.type === 'black') {
           const isWaiting = waitingForNote === midiNum;
-          const isActive = activeKeys.has(midiNum) || userActiveKeys.has(midiNum);
+          const isPhysicallyActive = userActiveKeysRef?.current.has(midiNum);
+          const isActive = activeKeys.has(midiNum) || isPhysicallyActive;
           
           ctx.save();
           if (isWaiting || isActive) {
@@ -179,13 +185,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.lineWidth = 1;
           ctx.stroke();
           
-          // Draw note text on black keys
-          // (Usually we don't draw note names on black keys to avoid clutter)
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${Math.max(9, layout.width * 0.4)}px "Nunito", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.fillText(NOTE_NAMES[midiNum % 12], layout.centerX, hitZoneY + currentBlackKeyHeight - 12);
-          
           ctx.restore();
         }
       }
@@ -198,99 +197,52 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (!layout) return;
 
         const isLeft = note.track === 'left';
-        // Note pills are slightly narrower than the physical keys
         const width = layout.type === 'white' ? layout.width * 0.8 : layout.width * 0.9;
         const x = layout.centerX - width / 2;
         const height = Math.max(note.duration * config.fallSpeed, 20);
         
-        // Tính toán true Y
         const timeFromHit = note.y / config.fallSpeed - config.lookAheadTime;
         let noteBottomY = hitZoneY + timeFromHit * config.fallSpeed;
         let noteTopY = noteBottomY - height;
 
-        // "Biến mất": Cắt nốt khi đang Hold HOẶC đi qua hit zone (chui vào phím) ở chế độ standard
         if (note.isHeld || (!config.waitMode && noteBottomY > hitZoneY)) {
            noteBottomY = hitZoneY;
         }
 
         const drawHeight = noteBottomY - noteTopY;
-        if (drawHeight <= 0) return; // Đã chìm hết
+        if (drawHeight <= 0) return;
 
         ctx.save();
-
         if (note.isWaiting) {
-          ctx.fillStyle = '#FFD700'; // Solid yellow
+          ctx.fillStyle = '#FFD700';
           ctx.strokeStyle = '#FFFFFF';
-          ctx.shadowColor = '#FFD700';
         } else if (isLeft) {
-          ctx.fillStyle = '#56CCF2'; // Solid flat blue
+          ctx.fillStyle = '#56CCF2';
           ctx.strokeStyle = '#1E5799';
-          ctx.shadowColor = '#56CCF2';
         } else {
-          ctx.fillStyle = '#A8E063'; // Solid flat green
+          ctx.fillStyle = '#A8E063';
           ctx.strokeStyle = '#3E8E41';
-          ctx.shadowColor = '#A8E063';
         }
-
-        // Tạo hiệu ứng phát sáng nổi bật
         ctx.shadowBlur = 15;
-        
         ctx.beginPath();
-        // Nếu nốt nhạc chạm đáy (vùng hit zone), xóa bo tròn góc dưới để dính chặt vào phím đàn không bị hở
         const isTouchingBottom = noteBottomY >= hitZoneY - 2;
         const radii = isTouchingBottom ? [8, 8, 0, 0] : [8, 8, 8, 8];
         ctx.roundRect(x, noteTopY, width, drawHeight, radii);
-        
-        ctx.globalAlpha = 1.0; // Không làm mờ tay trái nữa để nốt nổi bật hơn
-        
         ctx.fill();
-
         ctx.lineWidth = 2;
-        // Bỏ shadow khi vẽ viền để viền được sắc nét
         ctx.shadowBlur = 0;
         ctx.stroke();
 
-        // Always draw note name inside the pill if it's tall enough
         if (drawHeight > 15) {
-          ctx.fillStyle = '#000000'; // Đen đậm trên nền sáng
-          // Bỏ giới hạn 18px, cho phép chữ to theo chiều ngang của nốt
-          ctx.font = `900 ${Math.max(14, width * 0.7)}px Nunito, sans-serif`;
+          ctx.fillStyle = '#000000';
+          ctx.font = `900 ${Math.max(12, width * 0.5)}px Nunito, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          
-          // In chữ ở gần đáy thanh nhạc, thụt lên một chút để không bị che bởi tia lửa
           const textY = drawHeight > 40 ? noteBottomY - 20 : noteBottomY - drawHeight / 2;
-          ctx.fillText(NOTE_NAMES[note.midiNumber % 12], layout.centerX, textY);
+          const fullLabel = NOTE_NAMES[note.midiNumber % 12];
+          const shortLabel = fullLabel.split(' ')[0]; // Only take "C", "C#" etc.
+          ctx.fillText(shortLabel, layout.centerX, textY);
         }
-
-        // Hiệu ứng "đốt cháy" mượt và không che lấp nốt nhạc
-        if (note.isHeld) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'screen'; // Blend mode giúp hiệu ứng sáng lên mà không đè bít nốt nhạc
-            const glowWidth = width * 1.5; // Kéo rộng thêm để vệt mờ lan xa
-            const glowHeight = 8; 
-            
-            // Vẽ vệt mờ nhòe cực mạnh
-            ctx.shadowBlur = 40; // Tăng mạnh độ nhòe
-            ctx.shadowColor = isLeft ? '#56CCF2' : '#A8E063';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; // Gần như trong suốt, chỉ lấy cái bóng (shadow)
-            
-            ctx.beginPath();
-            ctx.ellipse(layout.centerX, hitZoneY, glowWidth / 2, glowHeight / 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fill(); // Vẽ 2 lần để cái bóng nhòe đậm hơn mà lõi không bị cứng
-            
-            // Vẽ lõi laser (cũng làm nhòe để không bị sắc cạnh)
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#FFFFFF';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.beginPath();
-            ctx.ellipse(layout.centerX, hitZoneY, width * 0.4, glowHeight * 0.4, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-        }
-
         ctx.restore();
       });
 
@@ -299,45 +251,34 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       particlesRef.current.forEach(p => {
          p.x += p.vx;
          p.y += p.vy;
-         
-         // Ma sát không khí (Drag) làm hạt bay chậm dần
          p.vx *= 0.95;
          p.vy *= 0.95;
-         
-         p.life -= 0.03; // Tan biến từ từ
-         
+         p.life -= 0.03;
          ctx.save();
-         ctx.globalCompositeOperation = 'screen'; // Blend mode sáng mịn, không che nốt
-         ctx.globalAlpha = Math.max(0, p.life * p.life * 0.8); // Giảm nhẹ alpha tối đa
+         ctx.globalCompositeOperation = 'screen';
+         ctx.globalAlpha = Math.max(0, p.life * p.life * 0.8);
          ctx.fillStyle = p.color;
-         
          ctx.beginPath();
          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
          ctx.fill();
-         
          ctx.shadowBlur = 8;
          ctx.shadowColor = p.color;
          ctx.fill();
          ctx.restore();
       });
+    });
 
-      // ── Wait Mode overlay banner removed per user request ──────────────
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [activeNotes, canvasWidth, canvasHeight, config.fallSpeed, waitingForNote]);
+    return unregister;
+  }, [canvasWidth, canvasHeight, config.fallSpeed, config.waitMode, config.lookAheadTime, keyboardRange, registerDrawCallback, showFingering, waitingForNote, userActiveKeysRef]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={canvasWidth}
-      height={canvasHeight}
-      style={{ display: 'block', position: 'absolute', top: 0, left: 0 }}
-    />
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasWidth, height: canvasHeight, overflow: 'hidden' }}>
+      <canvas
+        ref={canvasRef}
+        width={canvasWidth}
+        height={canvasHeight}
+        style={{ display: 'block' }}
+      />
+    </div>
   );
-};
+});

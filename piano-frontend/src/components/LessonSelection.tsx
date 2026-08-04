@@ -27,40 +27,71 @@ export const LessonSelection: React.FC<LessonSelectionProps> = ({ onSelectLesson
   }, []);
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Nunito, sans-serif', height: '100%', overflowY: 'auto' }}>
       <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center', color: '#fff' }}>🎹 KidsPiano</h1>
       <h2 style={{ fontSize: '24px', marginBottom: '40px', textAlign: 'center', opacity: 0.8, color: '#fff' }}>Chọn bài hát để chơi nhé!</h2>
       
       {loading && <p style={{ color: '#fff', textAlign: 'center' }}>Đang tải bài hát...</p>}
       {error && <p style={{ color: '#ff6b6b', textAlign: 'center' }}>Lỗi: {error}</p>}
       
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', justifyContent: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px', width: '100%', maxWidth: '900px', margin: '0 auto' }}>
         {lessons.map(lesson => (
           <div 
             key={lesson.id}
             onClick={() => onSelectLesson(lesson)}
             style={{
-              width: '280px',
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
               background: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(10px)',
-              borderRadius: '16px',
-              padding: '20px',
+              borderRadius: '12px',
+              padding: '12px 16px',
               cursor: 'pointer',
-              border: '2px solid rgba(255, 255, 255, 0.2)',
-              transition: 'transform 0.2s',
+              border: '2px solid rgba(255, 255, 255, 0.1)',
+              transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateX(8px)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.borderColor = '#A8E063';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }}
           >
             {lesson.thumbnail ? (
-              <img src={lesson.thumbnail} alt={lesson.title} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }} />
+              <img src={lesson.thumbnail} alt={lesson.title} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', marginRight: '16px' }} />
             ) : (
-              <div style={{ width: '100%', height: '160px', background: '#333', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '48px' }}>🎵</span>
+              <div style={{ width: '60px', height: '60px', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', marginRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '28px' }}>🎵</span>
               </div>
             )}
-            <h3 style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>{lesson.title}</h3>
-            <p style={{ color: '#aaa', fontSize: '14px' }}>Cấp độ {lesson.level} • {lesson.tempo} BPM</p>
+            
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <h3 style={{ fontSize: '18px', color: '#fff', margin: '0 0 4px 0', fontWeight: 'bold' }}>{lesson.title}</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', margin: 0 }}>
+                ⭐ Cấp độ {lesson.level} &nbsp;•&nbsp; ⏱️ {lesson.tempo} BPM
+              </p>
+            </div>
+            
+            <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                borderRadius: '50%', 
+                background: '#A8E063', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#1a1a3e',
+                fontSize: '20px',
+                paddingLeft: '4px', // Optical alignment for play triangle
+                boxShadow: '0 4px 10px rgba(168, 224, 99, 0.4)'
+              }}>
+              ▶
+            </div>
           </div>
         ))}
         {lessons.length === 0 && !loading && !error && (
