@@ -13,7 +13,8 @@ export const LessonSelection: React.FC<LessonSelectionProps> = ({ onSelectLesson
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const res = await fetch('http://localhost:3001/api/lessons?published=true');
+        const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API}/api/lessons?published=true`);
         if (!res.ok) throw new Error('Failed to fetch lessons');
         const data = await res.json();
         setLessons(data.data || []);
