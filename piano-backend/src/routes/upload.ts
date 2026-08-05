@@ -40,7 +40,7 @@ router.post('/lesson', upload.fields([
       return res.status(400).json({ error: 'midiFile is required' });
     }
 
-    const { title, level, tempo, description } = req.body;
+    const { title, level, tempo, description, simplify } = req.body;
     if (!title || !level || !tempo) {
       return res.status(400).json({ error: 'title, level, and tempo are required' });
     }
@@ -69,6 +69,9 @@ router.post('/lesson', upload.fields([
     // Call midi-service to parse the file
     const formData = new FormData();
     formData.append('file', fs.createReadStream(midiFile.path));
+    if (simplify === 'true') {
+      formData.append('simplify', 'true');
+    }
     
     // In docker, midi-service is reachable at http://midi-service:8000
     // But locally we might use localhost. Let's use env var or fallback

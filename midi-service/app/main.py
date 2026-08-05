@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -66,7 +66,7 @@ def _process_midi_file(file_path: str, filename: str, xml_content: Optional[str]
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/parse", response_model=ParseResponse)
-async def parse_midi(file: UploadFile = File(...)):
+async def parse_midi(file: UploadFile = File(...), simplify: bool = Form(False)):
     """Parses an uploaded MIDI or MusicXML file."""
     if not file.filename.endswith(('.mid', '.midi', '.xml', '.mxl')):
         raise HTTPException(status_code=400, detail="Must be a .mid, .midi, .xml, or .mxl file")
@@ -86,6 +86,31 @@ async def parse_midi(file: UploadFile = File(...)):
                 mid_path = temp_path + ".mid"
                 score.write('midi', fp=mid_path)
                 
+                if simplify:
+                    parts = list(score.getElementsByClass('Part'))
+                    avg_pitches = []
+                    for p in parts:
+                        pitches = []
+                        for n in p.recurse().notes:
+                            if getattr(n, 'isNote', False): pitches.append(n.pitch.midi)
+                            elif getattr(n, 'isChord', False): pitches.extend([pitch.midi for pitch in n.pitches])
+                        avg_pitches.append(sum(pitches) / max(1, len(pitches)))
+                        
+                    for i, p in enumerate(parts):
+                        is_bass = False
+                        if len(parts) >= 2:
+                            if avg_pitches[i] < max(avg_pitches): is_bass = True
+                        else:
+                            if avg_pitches[i] < 60: is_bass = True
+
+                        for n in p.recurse().getElementsByClass('Chord'):
+                            if is_bass:
+                                sorted_pitches = sorted(n.pitches, key=lambda pt: pt.midi)
+                                n.pitches = [sorted_pitches[0]]
+                            else:
+                                sorted_pitches = sorted(n.pitches, key=lambda pt: pt.midi, reverse=True)
+                                n.pitches = [sorted_pitches[0]]
+
                 # Re-export as uncompressed XML so the frontend gets a clean text string
                 xml_out_path = temp_path + "_uncompressed.musicxml"
                 score.write('musicxml', fp=xml_out_path)
@@ -128,16 +153,26 @@ async def parse_midi(file: UploadFile = File(...)):
                     right_part = main_part
                     
                     for n in list(right_part.recurse().notes):
-                        if getattr(n, 'isNote', False) and n.pitch.midi < 60:
-                            n.activeSite.remove(n)
-                        elif getattr(n, 'isChord', False) and all(p.midi < 60 for p in n.pitches):
-                            n.activeSite.remove(n)
-                            
+                        if getattr(n, 'isNote', False):
+                            if n.pitch.midi < 60:
+                                n.activeSite.remove(n)
+                        elif getattr(n, 'isChord', False):
+                            new_pitches = [p for p in n.pitches if p.midi >= 60]
+                            if not new_pitches:
+                                n.activeSite.remove(n)
+                            else:
+                                n.pitches = new_pitches
+                                
                     for n in list(left_part.recurse().notes):
-                        if getattr(n, 'isNote', False) and n.pitch.midi >= 60:
-                            n.activeSite.remove(n)
-                        elif getattr(n, 'isChord', False) and all(p.midi >= 60 for p in n.pitches):
-                            n.activeSite.remove(n)
+                        if getattr(n, 'isNote', False):
+                            if n.pitch.midi >= 60:
+                                n.activeSite.remove(n)
+                        elif getattr(n, 'isChord', False):
+                            new_pitches = [p for p in n.pitches if p.midi < 60]
+                            if not new_pitches:
+                                n.activeSite.remove(n)
+                            else:
+                                n.pitches = new_pitches
                             
                     score.insert(0, left_part)
                     valid_parts = [right_part, left_part]
@@ -155,11 +190,48 @@ async def parse_midi(file: UploadFile = File(...)):
                     if len(valid_parts) == 2:
                         is_bass = (i == 0 and avg_pitches[0] < avg_pitches[1]) or (i == 1 and avg_pitches[1] <= avg_pitches[0])
                     
+                    # Create the desired clef
+                    import music21.clef
                     c = music21.clef.BassClef() if is_bass else music21.clef.TrebleClef()
-                    p.insert(0, c)
+                    
+                    # Remove all existing clefs to prevent conflicts
+                    for el in list(p.recurse().getElementsByClass('Clef')):
+                        el.activeSite.remove(el)
+                        
+                    # Insert the new clef at the beginning of the first measure
+                    measures = list(p.getElementsByClass('Measure'))
+                    if measures:
+                        measures[0].insert(0, c)
+                    else:
+                        p.insert(0, c)
                         
                 # Quantize to 16th and 8th notes to remove timing jitter
                 score.quantize((8, 16), inPlace=True)
+                
+                if simplify:
+                    parts = list(score.getElementsByClass('Part'))
+                    avg_pitches = []
+                    for p in parts:
+                        pitches = []
+                        for n in p.recurse().notes:
+                            if getattr(n, 'isNote', False): pitches.append(n.pitch.midi)
+                            elif getattr(n, 'isChord', False): pitches.extend([pitch.midi for pitch in n.pitches])
+                        avg_pitches.append(sum(pitches) / max(1, len(pitches)))
+                        
+                    for i, p in enumerate(parts):
+                        is_bass = False
+                        if len(parts) >= 2:
+                            if avg_pitches[i] < max(avg_pitches): is_bass = True
+                        else:
+                            if avg_pitches[i] < 60: is_bass = True
+
+                        for n in p.recurse().getElementsByClass('Chord'):
+                            if is_bass:
+                                sorted_pitches = sorted(n.pitches, key=lambda pt: pt.midi)
+                                n.pitches = [sorted_pitches[0]]
+                            else:
+                                sorted_pitches = sorted(n.pitches, key=lambda pt: pt.midi, reverse=True)
+                                n.pitches = [sorted_pitches[0]]
                 
                 xml_out_path = temp_path + ".musicxml"
                 score.write('musicxml', fp=xml_out_path)
