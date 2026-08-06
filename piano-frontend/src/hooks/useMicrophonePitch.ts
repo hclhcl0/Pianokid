@@ -83,47 +83,35 @@ export function useMicrophonePitch(
       const float32Array = new Float32Array(analyser.fftSize);
 
       const loop = () => {
-        if (!active) {
-           requestRef.current = requestAnimationFrame(loop);
-           return;
-        }
-
         analyser.getFloatTimeDomainData(float32Array);
         
-        // Simple volume gate (RMS) to prevent background noise detection
         let rms = 0;
         for (let i = 0; i < float32Array.length; i++) {
           rms += float32Array[i] * float32Array[i];
         }
         rms = Math.sqrt(rms / float32Array.length);
 
-        const now = Date.now();
-
-        // Throttle volume callback to ~10fps
         if (onVolumeChange && Math.random() < 0.1) {
           onVolumeChange(Math.min(100, rms * 1000));
         }
 
-        if (rms > 0.005) { // Lowered threshold for iPad sensitivity
-          const frequency = detectPitch(float32Array);
-          
-          if (frequency && frequency > 50 && frequency < 3000) { // Reasonable piano range
-            // Convert frequency to MIDI number (A4 = 440Hz = MIDI 69)
-            const midiNumber = Math.round(12 * (Math.log2(frequency / 440)) + 69);
-            
-            // Debounce: don't trigger the same note multiple times instantly
-            // Require either a new note, or 400ms delay to re-trigger the same note
-            if (midiNumber !== lastDetectedNoteRef.current || now - lastNoteTimeRef.current > 400) {
-              onNoteOn(midiNumber);
-              lastDetectedNoteRef.current = midiNumber;
-              lastNoteTimeRef.current = now;
+        if (active) {
+          const now = Date.now();
+          if (rms > 0.005) {
+            const frequency = detectPitch(float32Array);
+            if (frequency && frequency > 50 && frequency < 3000) {
+              const midiNumber = Math.round(12 * (Math.log2(frequency / 440)) + 69);
+              if (midiNumber !== lastDetectedNoteRef.current || now - lastNoteTimeRef.current > 400) {
+                onNoteOn(midiNumber);
+                lastDetectedNoteRef.current = midiNumber;
+                lastNoteTimeRef.current = now;
+              }
             }
+          } else {
+             if (now - lastNoteTimeRef.current > 100) {
+                lastDetectedNoteRef.current = null;
+             }
           }
-        } else {
-           // Reset last note if quiet so we can re-trigger the same note quickly if they play it again
-           if (now - lastNoteTimeRef.current > 100) {
-              lastDetectedNoteRef.current = null;
-           }
         }
         
         requestRef.current = requestAnimationFrame(loop);
