@@ -234,6 +234,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
 
   const { isEnabled: isMicEnabled, error: micError, toggleMicrophone } = useMicrophonePitch(handlePitchDetected, hasStarted && !showEndGame);
 
+  const handleScreenKeyPress = useCallback((midiNumber: number) => {
+    setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
+    soundEffects.playPianoNote(midiNumber);
+    if (hasStarted && !showEndGame) {
+      processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
+    }
+  }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
+
+  const handleScreenKeyRelease = useCallback((midiNumber: number) => {
+    setUserActiveKeys(prev => { const n = new Set(prev); n.delete(midiNumber); return n; });
+    if (hasStarted && !showEndGame) {
+      processNoteOff(midiNumber);
+    }
+  }, [hasStarted, showEndGame, processNoteOff]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -536,12 +551,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       ) : (
         <>
           {viewMode === 'falling' ? (
-            <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height} waitingForNote={waitingForNote} keyboardRange={keyboardRange} />
+            <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height} waitingForNote={waitingForNote} keyboardRange={keyboardRange} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
           ) : (
             sheetMusicEngine === 'osmd' ? (
-              <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} />
+              <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
             ) : (
-              <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} />
+              <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
             )
           )}
           <canvas ref={effectsCanvasRef} width={dimensions.width} height={dimensions.height} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />

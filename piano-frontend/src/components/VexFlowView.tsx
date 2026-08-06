@@ -257,6 +257,10 @@ interface VexFlowViewProps {
 
   registerDrawCallback: (cb: (currentTime: number, activeNotes: ActiveNote[]) => void) => () => void;
 
+  onKeyPress?: (midiNumber: number) => void;
+
+  onKeyRelease?: (midiNumber: number) => void;
+
 }
 
 
@@ -267,7 +271,7 @@ export const VexFlowView: React.FC<VexFlowViewProps> = React.memo(({
 
   canvasWidth, canvasHeight, keyboardRange, userActiveKeysRef,
 
-  config, waitingForNote, showFingering, registerDrawCallback,
+  config, waitingForNote, showFingering, registerDrawCallback, onKeyPress, onKeyRelease
 
 }) => {
 
@@ -682,6 +686,8 @@ export const VexFlowView: React.FC<VexFlowViewProps> = React.memo(({
             waitingForNote={waitingForNote}
             keyboardRange={keyboardRange}
             showFingering={showFingering}
+            onKeyPress={onKeyPress}
+            onKeyRelease={onKeyRelease}
           />
 
         </div>

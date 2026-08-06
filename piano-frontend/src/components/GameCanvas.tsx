@@ -16,6 +16,8 @@ interface GameCanvasProps {
   userActiveKeysRef?: React.MutableRefObject<Set<number>>;
   keyboardRange?: KeyboardRange;
   showFingering?: boolean;
+  onKeyPress?: (midiNumber: number) => void;
+  onKeyRelease?: (midiNumber: number) => void;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = React.memo(({
@@ -27,10 +29,82 @@ export const GameCanvas: React.FC<GameCanvasProps> = React.memo(({
   userActiveKeysRef,
   keyboardRange = DEFAULT_RANGE,
   showFingering = true,
+  onKeyPress,
+  onKeyRelease,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const phaseRef = useRef<number>(0);
   const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, life: number, size: number, color: string}[]>([]);
+  const activePointersRef = useRef<Map<number, number>>(new Map()); // pointerId -> midiNumber
+
+  const getMidiNumberFromPointer = (x: number, y: number): number | null => {
+    const whiteKeyWidth = canvasWidth / keyboardRange.numWhiteKeys;
+    const keyHeight = Math.min(canvasHeight * 0.3, whiteKeyWidth * 5);
+    const hitZoneY = canvasHeight - keyHeight;
+    const blackKeyHeight = keyHeight * 0.6;
+
+    if (y < hitZoneY) return null;
+
+    // Check black keys first
+    if (y <= hitZoneY + blackKeyHeight) {
+      for (let i = 0; i < keyboardRange.numKeys; i++) {
+        const midiNum = keyboardRange.startMidi + i;
+        const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
+        if (layout && layout.type === 'black') {
+          if (x >= layout.x && x <= layout.x + layout.width) return midiNum;
+        }
+      }
+    }
+
+    // Check white keys
+    for (let i = 0; i < keyboardRange.numKeys; i++) {
+      const midiNum = keyboardRange.startMidi + i;
+      const layout = getPianoKeyLayout(midiNum, canvasWidth, keyboardRange);
+      if (layout && layout.type === 'white') {
+        if (x >= layout.x && x <= layout.x + layout.width) return midiNum;
+      }
+    }
+    return null;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const midiNum = getMidiNumberFromPointer(x, y);
+    if (midiNum !== null) {
+      activePointersRef.current.set(e.pointerId, midiNum);
+      onKeyPress?.(midiNum);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!activePointersRef.current.has(e.pointerId)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const midiNum = getMidiNumberFromPointer(x, y);
+    const currentMidi = activePointersRef.current.get(e.pointerId);
+
+    if (midiNum !== currentMidi) {
+      if (currentMidi !== undefined) onKeyRelease?.(currentMidi);
+      if (midiNum !== null) {
+        activePointersRef.current.set(e.pointerId, midiNum);
+        onKeyPress?.(midiNum);
+      } else {
+        activePointersRef.current.delete(e.pointerId);
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const midiNum = activePointersRef.current.get(e.pointerId);
+    if (midiNum !== undefined) {
+      onKeyRelease?.(midiNum);
+      activePointersRef.current.delete(e.pointerId);
+    }
+  };
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -277,7 +351,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = React.memo(({
         ref={canvasRef}
         width={canvasWidth}
         height={canvasHeight}
-        style={{ display: 'block' }}
+        style={{ display: 'block', touchAction: 'none' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerOut={handlePointerUp}
       />
     </div>
   );

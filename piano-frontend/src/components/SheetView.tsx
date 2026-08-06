@@ -18,11 +18,14 @@ interface SheetViewProps {
   showFingering: boolean;
   xmlUrl:        string | null;
   registerDrawCallback: (cb: (currentTime: number, activeNotes: ActiveNote[]) => void) => () => void;
+  onKeyPress?: (midiNumber: number) => void;
+  onKeyRelease?: (midiNumber: number) => void;
 }
 
 export const SheetView: React.FC<SheetViewProps> = React.memo(({
   canvasWidth, canvasHeight, keyboardRange, userActiveKeysRef,
-  config, waitingForNote, showFingering, registerDrawCallback, xmlUrl, notes, tempo
+  config, waitingForNote, showFingering, registerDrawCallback, xmlUrl, notes, tempo,
+  onKeyPress, onKeyRelease
 }) => {
   // ── Layout: match GameCanvas keyboard formula exactly ─────────────────
   const whiteKeyW  = canvasWidth / keyboardRange.numWhiteKeys;
@@ -85,6 +88,8 @@ export const SheetView: React.FC<SheetViewProps> = React.memo(({
             waitingForNote={waitingForNote}
             keyboardRange={keyboardRange}
             showFingering={showFingering}
+            onKeyPress={onKeyPress}
+            onKeyRelease={onKeyRelease}
           />
         </div>
       </div>
