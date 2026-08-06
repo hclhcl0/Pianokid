@@ -72,7 +72,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const userActiveKeysRef = useRef<Set<number>>(new Set());
   const [micVolume, setMicVolume] = useState<number>(0);
 
-  // Keep ref in sync
+  // Keep ref in sync for state changes from other sources if any, but we update synchronously in handlers
   useEffect(() => {
     userActiveKeysRef.current = userActiveKeys;
   }, [userActiveKeys]);
@@ -170,8 +170,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     const fallSpeed = Math.max(noteWidth * 4, 200) * speed; // nhanh hơn, tối thiểu 200px/s
     const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5);
     const hitZoneY = dimensions.height - keyHeight;
-    const lookAheadTime = Math.min(hitZoneY / fallSpeed, 3.0); // tối đa 3 giây nhìn trước
-    return { fallSpeed, lookAheadTime, hitWindowMs: 250, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed };
+    const lookAheadTime = Math.min(hitZoneY / fallSpeed, 3.0);
+    return { fallSpeed, lookAheadTime, hitWindowMs: 500, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed };
   }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine]);
 
 
@@ -218,6 +218,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const { isConnected, error: midiError } = useMidiDevice(
     e => {
       setUserActiveKeys(prev => { const n = new Set(prev); n.add(e.midiNumber); return n; });
+      userActiveKeysRef.current.add(e.midiNumber); // Sync update
       soundEffects.playPianoNote(e.midiNumber);
       if (hasStarted && !showEndGame) {
         processNoteHit(e.midiNumber, config.hitWindowMs, calculateHit);
@@ -225,6 +226,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     },
     e => {
       setUserActiveKeys(prev => { const n = new Set(prev); n.delete(e.midiNumber); return n; });
+      userActiveKeysRef.current.delete(e.midiNumber); // Sync update
       if (hasStarted && !showEndGame) processNoteOff(e.midiNumber);
     }
   );
@@ -246,6 +248,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
 
   const handleScreenKeyPress = useCallback((midiNumber: number) => {
     setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
+    userActiveKeysRef.current.add(midiNumber); // Sync update for game loop
     soundEffects.playPianoNote(midiNumber);
     if (hasStarted && !showEndGame) {
       processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
@@ -254,6 +257,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
 
   const handleScreenKeyRelease = useCallback((midiNumber: number) => {
     setUserActiveKeys(prev => { const n = new Set(prev); n.delete(midiNumber); return n; });
+    userActiveKeysRef.current.delete(midiNumber); // Sync update for game loop
     if (hasStarted && !showEndGame) {
       processNoteOff(midiNumber);
     }
@@ -265,6 +269,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       const midiNumber = KEY_TO_MIDI[e.key.toLowerCase()];
       if (midiNumber !== undefined) {
         setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
+        userActiveKeysRef.current.add(midiNumber); // Sync update
         soundEffects.playPianoNote(midiNumber);
         if (hasStarted && !showEndGame) {
           processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
@@ -275,6 +280,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       const midiNumber = KEY_TO_MIDI[e.key.toLowerCase()];
       if (midiNumber !== undefined) {
         setUserActiveKeys(prev => { const n = new Set(prev); n.delete(midiNumber); return n; });
+        userActiveKeysRef.current.delete(midiNumber); // Sync update
         if (hasStarted && !showEndGame) {
           processNoteOff(midiNumber);
         }
