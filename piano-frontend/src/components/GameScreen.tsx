@@ -48,7 +48,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const [hasStarted, setHasStarted] = useState(false);
   const [feedbacks, setFeedbacks] = useState<FeedbackData[]>([]);
   const [showEndGame, setShowEndGame] = useState(false);
-  const [waitModeEnabled, setWaitModeEnabled] = useState(true);
+  const [waitModeEnabled, setWaitModeEnabled] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [speed, setSpeed] = useState<number>(1);
   const [chordMode, setChordMode] = useState<'simple' | 'full' | 'arpeggio'>('simple');
@@ -589,7 +589,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             )
           )}
           <canvas ref={effectsCanvasRef} width={dimensions.width} height={dimensions.height} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
-          <GameHUD score={score} combo={combo} stars={stars} waitMode={config.waitMode} onPause={isPaused ? resumeGame : pauseGame} onSettings={() => { stopGame(); setHasStarted(false); }} />
+          <GameHUD
+            score={score}
+            combo={combo}
+            stars={stars}
+            waitMode={config.waitMode}
+            onPause={isPaused ? resumeGame : pauseGame}
+            onSettings={() => { stopGame(); setHasStarted(false); }}
+            onToggleWaitMode={() => setWaitModeEnabled(v => !v)}
+          />
           
           {currentChordName && (
             <div style={{ position: 'absolute', bottom: Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5) + 12, left: 16, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>

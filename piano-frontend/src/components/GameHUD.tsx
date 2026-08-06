@@ -7,26 +7,30 @@ interface GameHUDProps {
   waitMode: boolean;
   onPause: () => void;
   onSettings: () => void;
+  onToggleWaitMode?: () => void;
 }
 
-export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, onPause, onSettings }) => {
+export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, onPause, onSettings, onToggleWaitMode }) => {
   return (
-    <div className="hud-container">
+    <div className="hud-overlay">
       <div className="hud-top">
-        <div className="score-badge glass">
+        <div className="score-board glass">
           <span className="label">SCORE</span>
-          <span className="value">{score}</span>
+          <span className="value">{score.toLocaleString()}</span>
         </div>
         
-        <div className="stars-container glass">
-          <div style={{ display: 'flex', gap: '5px' }}>
-            {[1, 2, 3].map(s => (
-              <span key={s} className={`star ${stars >= s ? 'lit' : ''}`}>⭐</span>
-            ))}
-          </div>
+        <div className="stars-container">
+          {[1, 2, 3].map(s => (
+            <span
+              key={s}
+              className={`star ${s <= stars ? 'active starLight' : ''}`}
+            >
+              ⭐
+            </span>
+          ))}
         </div>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="combo-badge glass">
             <span className="label">COMBO</span>
             <span className={`value ${combo > 5 ? 'comboFlash' : ''}`}>
@@ -45,9 +49,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode,
       </div>
       
       <div className="hud-bottom">
-        <div className="mode-badge glass">
-          {waitMode ? 'WAIT MODE' : 'STANDARD MODE'}
-        </div>
+        <button
+          onClick={onToggleWaitMode}
+          className="mode-badge glass"
+          style={{ cursor: 'pointer', border: 'none', pointerEvents: 'auto', background: waitMode ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.15)' }}
+          title="Nhấn để đổi chế độ"
+        >
+          {waitMode ? '⏳ CHẾ ĐỘ CHỜ (WAIT)' : '🚀 RƠI TỰ DO (STANDARD)'}
+        </button>
       </div>
     </div>
   );

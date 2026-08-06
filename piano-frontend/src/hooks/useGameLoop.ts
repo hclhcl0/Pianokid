@@ -106,14 +106,14 @@ export const useGameLoop = (
         });
       }
 
-      // ── Wait Mode: find earliest unhit note that has reached startTime ──────
+      // ── Wait Mode: only pause if a note reaches the hit line and is NOT hit within grace period (150ms)
       if (waitMode && !autoPlay) {
         const nextPending = notesRef.current
-          .filter(n => !n.hit && !n.missed && currentTime >= n.startTime)
+          .filter(n => !n.hit && !n.missed && currentTime >= n.startTime + 0.15)
           .sort((a, b) => a.startTime - b.startTime)[0];
 
         if (nextPending && ac.state === 'running') {
-          // Freeze the audio clock at this note's hit moment
+          // Freeze the audio clock waiting for player
           ac.suspend();
           waitingForRef.current = nextPending.midiNumber;
           setWaitingForNote(nextPending.midiNumber);
