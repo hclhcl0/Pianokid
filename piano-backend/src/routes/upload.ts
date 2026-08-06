@@ -49,7 +49,9 @@ router.post('/lesson', upload.fields([
     const sheetFile = files.sheetFile?.[0];
     const thumbnailFile = files.thumbnailFile?.[0];
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const host = req.get('host') || '';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
     
     const midiFileUrl = `${baseUrl}/uploads/midi/${midiFile.filename}`;
     let sheetMusicUrl: string | undefined = undefined;
