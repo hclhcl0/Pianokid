@@ -646,14 +646,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
               {/* Volume bar */}
               <div style={{ marginBottom: 4 }}>
                 <span style={{ opacity: 0.7 }}>Volume: </span>
-                <span style={{ color: rmsVolume > 0.006 ? '#92FE9D' : rmsVolume > 0.002 ? '#FFD700' : '#ff6b6b' }}>
-                  {rmsVolume > 0.006 ? '✅' : rmsVolume > 0.002 ? '⚠️' : '🔴'} {(rmsVolume * 1000).toFixed(1)}
-                </span>
+                {rmsVolume === -1 ? (
+                  <span style={{ color: '#ff4444', fontWeight: 'bold' }}>
+                    ✂️ CLIPPING — xa loa ra 15-20cm!
+                  </span>
+                ) : (
+                  <span style={{ color: rmsVolume > 0.006 ? '#92FE9D' : rmsVolume > 0.002 ? '#FFD700' : '#ff6b6b' }}>
+                    {rmsVolume > 0.006 ? '✅' : rmsVolume > 0.002 ? '⚠️' : '🔴'} {(rmsVolume * 1000).toFixed(1)}
+                  </span>
+                )}
                 <div style={{ marginTop: 2, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 2 }}>
                   <div style={{
-                    width: `${Math.min(100, rmsVolume * 8000)}%`,
+                    width: rmsVolume === -1 ? '100%' : `${Math.min(100, rmsVolume * 8000)}%`,
                     height: '100%', borderRadius: 2,
-                    background: rmsVolume > 0.006 ? '#92FE9D' : rmsVolume > 0.002 ? '#FFD700' : '#ff6b6b',
+                    background: rmsVolume === -1 ? '#ff4444' : rmsVolume > 0.006 ? '#92FE9D' : rmsVolume > 0.002 ? '#FFD700' : '#ff6b6b',
                     transition: 'width 0.05s'
                   }} />
                 </div>

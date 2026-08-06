@@ -125,18 +125,31 @@ export function useMicrophonePitch(
       const loop = () => {
         analyser.getFloatTimeDomainData(buffer);
 
-        // ── 1. Calculate RMS (Root Mean Square) volume ─────────────────────
+        // ── 1. Calculate RMS + detect clipping ─────────────────────────────
         let sumSq = 0;
-        for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i];
+        let peak = 0;
+        for (let i = 0; i < buffer.length; i++) {
+          const v = Math.abs(buffer[i]);
+          sumSq += buffer[i] * buffer[i];
+          if (v > peak) peak = v;
+        }
         const rms = Math.sqrt(sumSq / buffer.length);
+        const isClipping = peak > 0.95; // signal is saturating the ADC
 
-        // Report volume to UI meter (throttled to ~6fps to avoid React render storms)
+        // Report volume to UI meter (throttled ~6fps)
         if (onVolumeChange && Math.random() < 0.1) {
           onVolumeChange(Math.min(100, rms * 800));
         }
-        // Always update rmsVolume for diagnostic panel (throttled ~10fps)
+        // Update rmsVolume + clipping for diagnostic panel (throttled ~10fps)
         if (Math.random() < 0.17) {
-          setRmsVolume(rms);
+          setRmsVolume(isClipping ? -1 : rms); // -1 signals clipping to UI
+        }
+
+        // If clipping: normalize buffer so YIN can still analyze the pitch shape.
+        // The peak amplitude is lost but the frequency information is preserved.
+        if (isClipping && peak > 0) {
+          const scale = 0.8 / peak;
+          for (let i = 0; i < buffer.length; i++) buffer[i] *= scale;
         }
 
         // ── 2. Silence gate ─────────────────────────────────────────────────
