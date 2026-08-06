@@ -16,8 +16,9 @@ export interface GameConfig {
   waitMode: boolean;
   sheetMusicEngine: 'osmd' | 'vexflow';
   autoPlay?: boolean;
-  showFingering?: boolean; // Hiện số ngón tay trên phím đàn
+  showFingering?: boolean;
   speed: number;
+  micLatencyMs: number; // Estimated mic pipeline latency to compensate hit window shift
 }
 
 // Bản đồ ngón tay chuẩn theo gam Đô trưởng (C major) — nền tảng dạy piano cho người mới

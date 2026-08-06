@@ -55,6 +55,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const [viewMode, setViewMode] = useState<'falling' | 'sheet'>('sheet');
   const [sheetMusicEngine, setSheetMusicEngine] = useState<'osmd' | 'vexflow'>('osmd');
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
+  // Mic pipeline latency compensation (ADC buffer ~93ms + stability buffer ~67ms = 160ms default)
+  const [micLatencyMs, setMicLatencyMs] = useState<number>(160);
 
   const effectsCanvasRef = useRef<HTMLCanvasElement>(null);
   const particleSystem = useRef<ParticleSystem | null>(null);
@@ -172,8 +174,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / numWhite) * 5);
     const hitZoneY = dimensions.height - keyHeight;
     const lookAheadTime = Math.min(hitZoneY / fallSpeed, 3.0);
-    return { fallSpeed, lookAheadTime, hitWindowMs: 500, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed };
-  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine, keyboardRange]);
+    return { fallSpeed, lookAheadTime, hitWindowMs: 500, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed, micLatencyMs };
+  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine, keyboardRange, micLatencyMs]);
 
 
   const { score, combo, stars, addHit, addMiss, breakCombo, calculateHit } = useScoring();
@@ -557,7 +559,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             </button>
           </div>
 
-          <div style={{ margin: '8px 0 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div style={{ margin: '8px 0 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <span style={{ fontSize: 16, opacity: 0.9 }}>🎙️ Mic Piano Cơ</span>
             <button onClick={toggleMicrophone} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: isMicEnabled ? 'linear-gradient(135deg,#00C9FF,#92FE9D)' : 'rgba(255,255,255,0.15)', color: isMicEnabled ? '#000' : '#fff' }}>
               {isMicEnabled ? 'ON' : 'OFF'}
@@ -573,6 +575,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
               </div>
             )}
           </div>
+          {isMicEnabled && (
+            <div style={{ margin: '4px 0 12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, opacity: 0.7 }}>⏱️ Bù trễ mic:</span>
+              <input
+                type="range" min={0} max={350} step={10}
+                value={micLatencyMs}
+                onChange={e => setMicLatencyMs(Number(e.target.value))}
+                style={{ width: 100, accentColor: '#92FE9D' }}
+              />
+              <span style={{ fontSize: 12, fontWeight: 'bold', color: '#92FE9D', minWidth: 40 }}>{micLatencyMs}ms</span>
+              <span style={{ fontSize: 11, opacity: 0.55 }}>(mặc định 160ms)</span>
+            </div>
+          )}
           {micError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{micError}</p>}
           {midiError ? <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 20px' }}>⚠️ {midiError}</p> : <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>MIDI: {isConnected ? '🟢 Connected' : '🔴 Not connected'}</p>}
           <p style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>No MIDI? Use keyboard: <b>K=C4 · Z=G4 · X=A4 · L=D4 · ;=E4 · '=F4</b></p>

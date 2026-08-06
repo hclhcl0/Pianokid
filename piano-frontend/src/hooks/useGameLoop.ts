@@ -213,9 +213,14 @@ export const useGameLoop = (
       const cfg = configRef.current;
       if (!ac || !cfg) return;
 
-      const { waitMode, autoPlay, lookAheadTime } = cfg;
+      const { waitMode, autoPlay, lookAheadTime, micLatencyMs } = cfg;
       const rawTime = ac.currentTime - startTimeOffsetRef.current;
-      const currentTime = rawTime - lookAheadTime;
+      // When input comes from microphone, subtract the known pipeline latency so that
+      // the "effective" time of the note onset matches when the player actually struck
+      // the key — not when the algorithm finished processing the audio buffer.
+      // Mic latency chain: ADC buffer (~93ms) + stability frames (~67ms) ≈ 160ms total
+      const latencyCompSec = isMicInput ? (micLatencyMs || 160) / 1000 : 0;
+      const currentTime = rawTime - lookAheadTime - latencyCompSec;
       
       if (autoPlay) return; // Bỏ qua input khi đang Auto-Play
 
