@@ -89,18 +89,50 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
 
 
   useEffect(() => {
+    const CACHE_KEY = `kidspiano_notes_${lesson.midiJsonUrl}`;
     const fetchNotes = async () => {
       try {
         setLoadingNotes(true);
+
+        // ── 1. Try localStorage cache first (works offline / weak network) ──
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            setLoadedNotes(data.notes || []);
+            setTimeSignature(data.timeSignature || '4/4');
+            if (data.tempo) setSongTempo(data.tempo);
+            setLoadingNotes(false);
+            // Still try to refresh in background (don't block UI)
+            fetch(lesson.midiJsonUrl).then(r => r.ok ? r.json() : null).then(data => {
+              if (data) localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            }).catch(() => {/* silent — cache is already loaded */});
+            return;
+          } catch { /* corrupt cache — fall through to network */ }
+        }
+
+        // ── 2. No cache: fetch from network ─────────────────────────────────
         const res = await fetch(lesson.midiJsonUrl);
-        if (!res.ok) throw new Error('Failed to fetch lesson notes');
+        if (!res.ok) throw new Error('Không tải được bài học. Kiểm tra kết nối mạng.');
         const data = await res.json();
         setLoadedNotes(data.notes || []);
         setTimeSignature(data.timeSignature || '4/4');
-        if (data.tempo) {
-          setSongTempo(data.tempo);
-        }
+        if (data.tempo) setSongTempo(data.tempo);
+
+        // Save to cache for offline use
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* quota exceeded */ }
       } catch (err: any) {
+        // If network fails but cache exists, try one more time from cache
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            setLoadedNotes(data.notes || []);
+            setTimeSignature(data.timeSignature || '4/4');
+            if (data.tempo) setSongTempo(data.tempo);
+            return; // recovered from cache
+          } catch { /* fall through to error */ }
+        }
         setNotesError(err.message);
       } finally {
         setLoadingNotes(false);
@@ -108,6 +140,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     };
     fetchNotes();
   }, [lesson.midiJsonUrl, lesson.tempo]);
+
 
 
   useEffect(() => {

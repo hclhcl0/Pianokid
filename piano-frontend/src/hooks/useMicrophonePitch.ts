@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { YIN } from 'pitchfinder';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pitchfinder = require('pitchfinder');
 
 interface MicrophonePitchResult {
   isEnabled: boolean;
@@ -116,10 +117,13 @@ export function useMicrophonePitch(
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
 
-      // YIN threshold 0.25: more permissive than default 0.15
-      // Piano has complex overtones that make YIN return null with strict thresholds.
-      // 0.25 accepts more uncertain detections — the stability buffer catches false positives.
-      const detectPitch = YIN({ sampleRate: audioCtx.sampleRate, threshold: 0.25 });
+      // ── 3-algorithm cascade for maximum organ/digital piano compatibility ──
+      // 1. Macleod (MPM) — best for harmonic-rich electronic instruments
+      // 2. AMDF         — robust fallback, works well with sustained organ notes
+      // 3. ACF2PLUS     — last resort autocorrelation
+      const detectMacleod = pitchfinder.Macleod({ sampleRate: audioCtx.sampleRate, bufferSize: analyser.fftSize });
+      const detectAMDF    = pitchfinder.AMDF({ sampleRate: audioCtx.sampleRate, minFrequency: 27, maxFrequency: 4200 });
+      const detectACF     = pitchfinder.ACF2PLUS({ sampleRate: audioCtx.sampleRate });
       const buffer = new Float32Array(analyser.fftSize);
 
       const loop = () => {
@@ -166,14 +170,14 @@ export function useMicrophonePitch(
           return;
         }
 
-        // ── 3. YIN pitch estimation (always runs for diagnostics) ───────────
-        // We run this even when below onset threshold so the diagnostic panel
-        // can show the frequency — helping the user understand if YIN detects
-        // their piano at all, even when the volume is a bit low.
-        const frequency = detectPitch(buffer);
+        // ── 3. Pitch estimation — cascade: Macleod → AMDF → ACF2PLUS ────────
+        // Macleod (MPM) is superior for organ/digital piano harmonic content.
+        // Falls back to AMDF then ACF2PLUS if primary returns null.
+        const frequency = detectMacleod(buffer)
+          ?? detectAMDF(buffer)
+          ?? detectACF(buffer);
 
         if (!frequency || frequency < 27 || frequency > 4200) {
-          // Out of piano range or no clear pitch found
           if (Math.random() < 0.17) {
             setDetectedFrequency(null);
             setStableCount(0);
