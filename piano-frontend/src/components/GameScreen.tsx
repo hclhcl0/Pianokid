@@ -166,13 +166,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   }, [hasStarted, dimensions]);
 
   const config = useMemo<GameConfig>(() => {
-    const noteWidth = (dimensions.width / NUM_WHITE_KEYS) * 0.8;
-    const fallSpeed = Math.max(noteWidth * 4, 200) * speed; // nhanh hơn, tối thiểu 200px/s
-    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5);
+    const numWhite = keyboardRange.numWhiteKeys || 14;
+    const noteWidth = (dimensions.width / numWhite) * 0.8;
+    const fallSpeed = Math.max(noteWidth * 4, 200) * speed;
+    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / numWhite) * 5);
     const hitZoneY = dimensions.height - keyHeight;
     const lookAheadTime = Math.min(hitZoneY / fallSpeed, 3.0);
     return { fallSpeed, lookAheadTime, hitWindowMs: 500, waitMode: waitModeEnabled, autoPlay: autoPlayEnabled, sheetMusicEngine, speed };
-  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine]);
+  }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine, keyboardRange]);
 
 
   const { score, combo, stars, addHit, addMiss, calculateHit } = useScoring();
@@ -187,9 +188,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       addHit(note, result);
       setGameStats(prev => ({ ...prev, hitNotes: prev.hitNotes + 1 }));
     }
-    const layout = getPianoKeyLayout(note.midiNumber, dimensions.width);
+    const layout = getPianoKeyLayout(note.midiNumber, dimensions.width, keyboardRange);
     const x = layout ? layout.centerX : dimensions.width / 2;
-    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5);
+    const numWhite = keyboardRange.numWhiteKeys || 14;
+    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / numWhite) * 5);
     const y = dimensions.height - keyHeight;
     if (config.autoPlay) soundEffects.playPianoNote(note.midiNumber);
     // particleSystem.current?.emitHit(x, y, result as 'perfect' | 'good');
@@ -198,20 +200,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       setFeedbacks(prev => [...prev, { id, x, y, result, timestamp: Date.now() }]);
       setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 800);
     }
-  }, [addHit, dimensions, config.autoPlay]);
+  }, [addHit, dimensions, config.autoPlay, keyboardRange]);
 
   const handleMiss = useCallback((note: ActiveNote) => {
     addMiss(note);
-    const layout = getPianoKeyLayout(note.midiNumber, dimensions.width);
+    const layout = getPianoKeyLayout(note.midiNumber, dimensions.width, keyboardRange);
     const x = layout ? layout.centerX : dimensions.width / 2;
-    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5);
+    const numWhite = keyboardRange.numWhiteKeys || 14;
+    const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / numWhite) * 5);
     const y = dimensions.height - keyHeight;
     soundEffects.playMiss();
     // particleSystem.current?.emitMiss(x, y);
     const id = crypto.randomUUID();
     setFeedbacks(prev => [...prev, { id, x, y, result: 'miss', timestamp: Date.now() }]);
     setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 800);
-  }, [addMiss, dimensions]);
+  }, [addMiss, dimensions, keyboardRange]);
 
   const { gameState, activeNotes, waitingForNote, startGame, pauseGame, resumeGame, stopGame, processNoteHit, processNoteOff, registerDrawCallback } = useGameLoop(handleHit, handleMiss);
 

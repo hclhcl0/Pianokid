@@ -213,8 +213,9 @@ export const useGameLoop = (
       const cfg = configRef.current;
       if (!ac || !cfg) return;
 
-      const { waitMode, autoPlay } = cfg;
-      const currentTime = ac.currentTime;
+      const { waitMode, autoPlay, lookAheadTime } = cfg;
+      const rawTime = ac.currentTime - startTimeOffsetRef.current;
+      const currentTime = rawTime - lookAheadTime;
       
       if (autoPlay) return; // Bỏ qua input khi đang Auto-Play
 
@@ -264,13 +265,10 @@ export const useGameLoop = (
             ac.resume();
           }
         }
-      } else {
-        // Standard mode: wrong timing counts as a miss
-        target.missed = true;
-        onMiss(target);
       }
+      // If result === 'miss' (e.g. tapped too early), silently ignore so user can tap again when note arrives.
     },
-    [onHit, onMiss]
+    [onHit]
   );
 
   // ─── Process a note release from MIDI or keyboard (stop Hold) ───────────────
