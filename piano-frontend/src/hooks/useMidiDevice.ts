@@ -45,7 +45,7 @@ export const useMidiDevice = (
     const setupMidi = async () => {
       try {
         if (!navigator.requestMIDIAccess) {
-          setError('Trình duyệt này không hỗ trợ cắm dây cáp MIDI. Hãy dùng "Mic Piano Cơ" hoặc bấm trực tiếp trên màn hình nhé.');
+          setError('not supported — Trình duyệt này không hỗ trợ cắm dây cáp MIDI. Dùng "Mic Piano Cơ" hoặc bấm trực tiếp trên màn hình nhé.');
           return;
         }
 

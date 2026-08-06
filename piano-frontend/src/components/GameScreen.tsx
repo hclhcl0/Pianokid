@@ -589,8 +589,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             </div>
           )}
           {micError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{micError}</p>}
-          {midiError ? <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 20px' }}>⚠️ {midiError}</p> : <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>MIDI: {isConnected ? '🟢 Connected' : '🔴 Not connected'}</p>}
-          <p style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>No MIDI? Use keyboard: <b>K=C4 · Z=G4 · X=A4 · L=D4 · ;=E4 · '=F4</b></p>
+
+          {/* Smart MIDI Status */}
+          {midiError && midiError.includes('not supported') ? (
+            <div style={{ background: 'rgba(255,200,0,0.12)', border: '1px solid rgba(255,200,0,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 10, fontSize: 13, textAlign: 'left' }}>
+              <p style={{ color: '#FFD700', margin: '0 0 6px 0', fontWeight: 'bold' }}>⚠️ Trình duyệt không hỗ trợ USB MIDI</p>
+              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>🎤 <b>Dùng Mic</b> (khuyến nghị cho điện thoại/tablet)</p>
+              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>⌨️ <b>Bàn phím máy tính</b>: K=C4 · L=D4 · Z=E4 · X=F4</p>
+              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>👆 <b>Bàn phím màn hình</b>: chạm trực tiếp vào phím đàn</p>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.55, fontSize: 11 }}>USB MIDI chỉ hoạt động trên Chrome/Edge máy tính</p>
+            </div>
+          ) : midiError ? (
+            <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 4px' }}>⚠️ {midiError}</p>
+          ) : (
+            <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>🎹 MIDI: {isConnected ? '🟢 Đã kết nối' : '🔴 Chưa kết nối (cắm dây USB vào)'}</p>
+          )}
+          {!midiError && <p style={{ fontSize: 12, opacity: 0.55, marginBottom: 8 }}>Không có MIDI? Dùng phím máy tính: <b>K=C4 · Z=G4 · X=A4 · L=D4</b></p>}
           {loadingNotes ? <p>Loading notes...</p> : notesError ? <p style={{ color: 'red' }}>Error: {notesError}</p> : (
             <button className="start-btn" onClick={handleStart} style={{ fontFamily: 'Nunito, sans-serif' }}>▶ START GAME</button>
           )}
