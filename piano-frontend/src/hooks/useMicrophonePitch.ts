@@ -120,35 +120,16 @@ export function useMicrophonePitch(
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
 
-      // ── 3-algorithm cascade for maximum organ/digital piano compatibility ──
-      // 0. FFT peak    — frequency-domain, works for ANY harmonic instrument
-      // 1. Macleod (MPM) — best for harmonic-rich electronic instruments
-      // 2. AMDF         — robust fallback, works well with sustained organ notes
+      // ── 4-algorithm cascade for maximum compatibility ──
+      // 1. Macleod (MPM) — state of the art time-domain
+      // 2. YIN          — highly accurate, relaxed threshold
+      // 3. AMDF         — robust fallback for sustained organ notes
+      // 4. ACF2PLUS     — last resort autocorrelation
       const detectMacleod = pitchfinder.Macleod({ sampleRate: audioCtx.sampleRate, bufferSize: analyser.fftSize });
+      const detectYIN     = pitchfinder.YIN({ sampleRate: audioCtx.sampleRate, threshold: 0.3 }); // relaxed threshold
       const detectAMDF    = pitchfinder.AMDF({ sampleRate: audioCtx.sampleRate, minFrequency: 27, maxFrequency: 4200 });
       const detectACF     = pitchfinder.ACF2PLUS({ sampleRate: audioCtx.sampleRate });
-      const freqBuffer    = new Float32Array(analyser.frequencyBinCount); // for FFT
       const buffer        = new Float32Array(analyser.fftSize);
-
-      // FFT-based pitch: find strongest frequency bin in piano range
-      // Completely different approach from time-domain algorithms.
-      // Works reliably for organ/digital piano which has strong spectral peaks.
-      const detectFFT = (): number | null => {
-        analyser.getFloatFrequencyData(freqBuffer);
-        const binHz = (audioCtx.sampleRate / 2) / freqBuffer.length;
-        const minBin = Math.max(1, Math.floor(27 / binHz));
-        const maxBin = Math.min(freqBuffer.length - 2, Math.ceil(4200 / binHz));
-        let maxDb = -100, peakBin = -1;
-        for (let i = minBin; i <= maxBin; i++) {
-          if (freqBuffer[i] > maxDb) { maxDb = freqBuffer[i]; peakBin = i; }
-        }
-        if (maxDb < -60 || peakBin < 1) return null; // too quiet or no peak
-        // Parabolic interpolation for sub-bin accuracy
-        const y1 = freqBuffer[peakBin - 1], y2 = freqBuffer[peakBin], y3 = freqBuffer[peakBin + 1];
-        const denom = 2 * (2 * y2 - y1 - y3);
-        const refined = denom !== 0 ? peakBin + (y3 - y1) / denom : peakBin;
-        return refined * binHz;
-      };
 
       const loop = () => {
         analyser.getFloatTimeDomainData(buffer);
@@ -167,16 +148,10 @@ export function useMicrophonePitch(
         if (onVolumeChange && Math.random() < 0.1) {
           onVolumeChange(Math.min(100, rms * 800));
         }
+        // Update rmsVolume + clipping for diagnostic panel (throttled ~10fps)
         if (Math.random() < 0.17) {
           setRmsVolume(isClipping ? -1 : rms);
           setBufferMax(Math.round(peak * 1000) / 1000); // always show raw peak
-        }
-
-        // If clipping: normalize buffer so YIN can still analyze the pitch shape.
-        // The peak amplitude is lost but the frequency information is preserved.
-        if (isClipping && peak > 0) {
-          const scale = 0.8 / peak;
-          for (let i = 0; i < buffer.length; i++) buffer[i] *= scale;
         }
 
         // ── 2. Silence gate ─────────────────────────────────────────────────
@@ -193,23 +168,31 @@ export function useMicrophonePitch(
           return;
         }
 
-        // ── 3. Pitch estimation — FFT first, then time-domain cascade ────────
-        // FFT approach: frequency-domain peak detection.
-        // Works for organ/digital piano regardless of waveform complexity.
+        // ── 3. Pitch estimation — Cascade ────────────────────────────────────
         let frequency: number | null = null;
         let algo = 'none';
 
-        const fftResult = detectFFT();
-        if (fftResult && fftResult >= 27 && fftResult <= 4200) {
-          frequency = fftResult; algo = 'FFT';
-        } else {
-          const mac = detectMacleod(buffer);
-          if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
+        // Always normalize a copy of the buffer before pitch detection.
+        // Organ/Digital Pianos can have variable input volumes. Normalizing
+        // helps Macleod and YIN lock onto the fundamental instead of failing.
+        const pitchBuffer = new Float32Array(buffer.length);
+        if (peak > 0) {
+          const scale = 0.8 / peak;
+          for (let i = 0; i < buffer.length; i++) {
+            pitchBuffer[i] = buffer[i] * scale;
+          }
+        }
+
+        const mac = detectMacleod(pitchBuffer);
+        if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
+        else {
+          const yin = detectYIN(pitchBuffer);
+          if (yin && yin >= 27 && yin <= 4200) { frequency = yin; algo = 'YIN'; }
           else {
-            const amdf = detectAMDF(buffer);
+            const amdf = detectAMDF(pitchBuffer);
             if (amdf && amdf >= 27 && amdf <= 4200) { frequency = amdf; algo = 'AMDF'; }
             else {
-              const acf = detectACF(buffer);
+              const acf = detectACF(pitchBuffer);
               if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
             }
           }
