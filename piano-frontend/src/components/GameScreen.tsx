@@ -176,7 +176,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   }, [dimensions, waitModeEnabled, autoPlayEnabled, speed, sheetMusicEngine, keyboardRange]);
 
 
-  const { score, combo, stars, addHit, addMiss, calculateHit } = useScoring();
+  const { score, combo, stars, addHit, addMiss, breakCombo, calculateHit } = useScoring();
 
   useEffect(() => {
     setGameStats(prev => ({ ...prev, maxCombo: Math.max(prev.maxCombo, combo) }));
@@ -216,7 +216,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 800);
   }, [addMiss, dimensions, keyboardRange]);
 
-  const { gameState, activeNotes, waitingForNote, startGame, pauseGame, resumeGame, stopGame, processNoteHit, processNoteOff, registerDrawCallback } = useGameLoop(handleHit, handleMiss);
+  const { gameState, activeNotes, waitingForNote, startGame, pauseGame, resumeGame, stopGame, processNoteHit, processNoteOff, registerDrawCallback } = useGameLoop(handleHit, handleMiss, breakCombo);
 
   const { isConnected, error: midiError } = useMidiDevice(
     e => {

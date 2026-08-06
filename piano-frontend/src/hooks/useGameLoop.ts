@@ -15,7 +15,8 @@ import { GameConfig, GameState, NoteEvent, ActiveNote, HitResult } from '../type
  */
 export const useGameLoop = (
   onHit: (note: ActiveNote, result: HitResult) => void,
-  onMiss: (note: ActiveNote) => void
+  onMiss: (note: ActiveNote) => void,
+  onBreakCombo?: () => void
 ) => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number>(0);
@@ -230,11 +231,22 @@ export const useGameLoop = (
         }
       }
 
-      // Find the closest unhit note matching this midiNumber
+      // Find candidates that are actually near the hit line (within playable window)
+      const playableWindowSec = (hitWindowMs || 500) / 1000;
       const candidates = notesRef.current.filter(
-        n => !n.hit && !n.missed && n.midiNumber === midiNumber
+        n => !n.hit && !n.missed && n.midiNumber === midiNumber && (
+          (waitMode && waitingForRef.current === n.midiNumber) ||
+          Math.abs(n.startTime - currentTime) <= playableWindowSec
+        )
       );
-      if (candidates.length === 0) return;
+
+      if (candidates.length === 0) {
+        // User pressed a key that is NOT near the hit zone
+        if (!waitMode) {
+          onBreakCombo?.();
+        }
+        return;
+      }
 
       candidates.sort(
         (a, b) =>
@@ -244,8 +256,7 @@ export const useGameLoop = (
       const target = candidates[0];
 
       let result: HitResult;
-      if (waitMode) {
-        // AudioContext was frozen exactly at startTime → always Perfect
+      if (waitMode && waitingForRef.current === target.midiNumber) {
         result = 'perfect';
       } else {
         const timeDiff = currentTime - target.startTime;
@@ -266,9 +277,8 @@ export const useGameLoop = (
           }
         }
       }
-      // If result === 'miss' (e.g. tapped too early), silently ignore so user can tap again when note arrives.
     },
-    [onHit]
+    [onHit, onBreakCombo]
   );
 
   // ─── Process a note release from MIDI or keyboard (stop Hold) ───────────────

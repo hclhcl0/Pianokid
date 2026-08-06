@@ -54,6 +54,11 @@ export const useScoring = () => {
     setStars(accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1);
   }, []);
 
+  const breakCombo = useCallback(() => {
+    comboRef.current = 0;
+    setCombo(0);
+  }, []);
+
   const reset = useCallback(() => {
     setScore(0);
     setCombo(0);
@@ -63,5 +68,5 @@ export const useScoring = () => {
     totalRef.current = 0;
   }, []);
 
-  return { score, combo, stars, addHit, addMiss, reset, calculateHit };
+  return { score, combo, stars, addHit, addMiss, breakCombo, reset, calculateHit };
 };
