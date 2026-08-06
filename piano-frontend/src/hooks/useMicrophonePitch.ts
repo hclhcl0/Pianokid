@@ -113,9 +113,9 @@ export function useMicrophonePitch(
       if (audioCtx.state === 'suspended') await audioCtx.resume();
 
       const analyser = audioCtx.createAnalyser();
-      // fftSize 8192 = 186ms window at 44.1kHz — gives YIN enough data for low piano notes
-      // Trade-off: slightly more latency but much better detection of piano timbre
-      analyser.fftSize = 8192;
+      // fftSize 2048 = 46ms window at 44.1kHz — ideal for tracking organ notes
+      // (down to ~43Hz). Prevents high frequencies (>= C5) from smearing due to vibrato.
+      analyser.fftSize = 2048;
       analyserRef.current = analyser;
 
       const source = audioCtx.createMediaStreamSource(stream);
