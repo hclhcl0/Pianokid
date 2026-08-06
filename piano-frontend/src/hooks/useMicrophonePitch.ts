@@ -21,6 +21,7 @@ export function useMicrophonePitch(
   const requestRef = useRef<number | null>(null);
   const lastNoteTimeRef = useRef<number>(0);
   const lastDetectedNoteRef = useRef<number | null>(null);
+  const dummyAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const toggleMicrophone = useCallback(async () => {
     if (isEnabled) {
@@ -29,6 +30,10 @@ export function useMicrophonePitch(
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
+      }
+      if (dummyAudioRef.current) {
+        dummyAudioRef.current.srcObject = null;
+        dummyAudioRef.current = null;
       }
       setIsEnabled(false);
       setError(null);
@@ -53,6 +58,14 @@ export function useMicrophonePitch(
         } 
       });
       streamRef.current = stream;
+
+      // iOS Safari hack: MediaStream must be attached to an audio element to emit data
+      // WebKit Bug 212780: https://bugs.webkit.org/show_bug.cgi?id=212780
+      const audioEl = new Audio();
+      audioEl.muted = true;
+      audioEl.srcObject = stream;
+      audioEl.play().catch(e => console.warn('iOS audio play hack failed:', e));
+      dummyAudioRef.current = audioEl;
 
       // iOS Safari might suspend the context while waiting for mic permission
       if (audioCtx.state === 'suspended') {
