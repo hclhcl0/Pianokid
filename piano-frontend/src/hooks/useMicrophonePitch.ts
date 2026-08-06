@@ -132,6 +132,42 @@ export function useMicrophonePitch(
       const detectAMDF    = pitchfinder.AMDF({ sampleRate: audioCtx.sampleRate, minFrequency: 27, maxFrequency: 4200 });
       const detectACF     = pitchfinder.ACF2PLUS({ sampleRate: audioCtx.sampleRate });
       const buffer        = new Float32Array(analyser.fftSize);
+      const freqBuffer    = new Float32Array(analyser.frequencyBinCount);
+
+      // FFT fallback with subharmonic detection to prevent octave/fifth errors
+      // High notes (>= C5) often fail time-domain autocorrelation due to phase cancellation
+      const detectFFT = (): number | null => {
+        analyser.getFloatFrequencyData(freqBuffer);
+        const binHz = (audioCtx.sampleRate / 2) / freqBuffer.length;
+        
+        let maxDb = -Infinity;
+        let maxBin = -1;
+        // Find absolute highest peak
+        for (let i = 1; i < freqBuffer.length; i++) {
+          if (freqBuffer[i] > maxDb) { maxDb = freqBuffer[i]; maxBin = i; }
+        }
+        
+        if (maxDb < -80 || maxBin <= 0) return null;
+        
+        // Look for strong subharmonics (fundamental might be weaker than harmonics in organ)
+        let fundamentalBin = maxBin;
+        const thresholdDb = maxDb - 15; 
+        
+        for (let div = 4; div >= 2; div--) {
+          const subBin = Math.round(maxBin / div);
+          if (subBin > 0 && freqBuffer[subBin] > thresholdDb) {
+             // Verify it's a local peak
+             if (freqBuffer[subBin] > freqBuffer[subBin-1] && freqBuffer[subBin] > freqBuffer[subBin+1]) {
+                fundamentalBin = subBin;
+                break;
+             }
+          }
+        }
+        
+        const freq = fundamentalBin * binHz;
+        if (freq >= 27 && freq <= 4200) return freq;
+        return null;
+      };
 
       const loop = () => {
         analyser.getFloatTimeDomainData(buffer);
@@ -199,6 +235,10 @@ export function useMicrophonePitch(
             else {
               const acf = detectACF(pitchBuffer);
               if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
+              else {
+                const fft = detectFFT();
+                if (fft) { frequency = fft; algo = 'FFT'; }
+              }
             }
           }
         }
