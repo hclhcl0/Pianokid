@@ -5,6 +5,7 @@ interface MicrophonePitchResult {
   isEnabled: boolean;
   error: string | null;
   toggleMicrophone: () => void;
+  detectedNote: number | null;
 }
 
 export function useMicrophonePitch(
@@ -14,6 +15,7 @@ export function useMicrophonePitch(
 ): MicrophonePitchResult {
   const [isEnabled, setIsEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectedNote, setDetectedNote] = useState<number | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -73,7 +75,7 @@ export function useMicrophonePitch(
       }
       
       const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048; 
+      analyser.fftSize = 4096; // 4096 is required to fit at least 2 periods of lowest piano notes (27.5Hz)
       analyserRef.current = analyser;
       
       const source = audioCtx.createMediaStreamSource(stream);
@@ -101,6 +103,11 @@ export function useMicrophonePitch(
             const frequency = detectPitch(float32Array);
             if (frequency && frequency > 50 && frequency < 3000) {
               const midiNumber = Math.round(12 * (Math.log2(frequency / 440)) + 69);
+              
+              if (Math.random() < 0.2) {
+                 setDetectedNote(midiNumber);
+              }
+
               if (midiNumber !== lastDetectedNoteRef.current || now - lastNoteTimeRef.current > 400) {
                 onNoteOn(midiNumber);
                 lastDetectedNoteRef.current = midiNumber;
@@ -110,6 +117,7 @@ export function useMicrophonePitch(
           } else {
              if (now - lastNoteTimeRef.current > 100) {
                 lastDetectedNoteRef.current = null;
+                if (Math.random() < 0.2) setDetectedNote(null);
              }
           }
         }
@@ -137,5 +145,5 @@ export function useMicrophonePitch(
     };
   }, []);
 
-  return { isEnabled, error, toggleMicrophone };
+  return { isEnabled, error, toggleMicrophone, detectedNote };
 }

@@ -233,11 +233,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     if (hasStarted && !showEndGame) processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
   }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
 
-  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone } = useMicrophonePitch(
+  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote } = useMicrophonePitch(
     handlePitchDetected, 
     hasStarted && !showEndGame,
     setMicVolume
   );
+
+  const getNoteName = (midi: number) => {
+    const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    return notes[midi % 12] + Math.floor(midi / 12 - 1);
+  };
 
   const handleScreenKeyPress = useCallback((midiNumber: number) => {
     setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
@@ -546,8 +551,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
               {isMicEnabled ? 'ON' : 'OFF'}
             </button>
             {isMicEnabled && (
-              <div style={{ width: 60, height: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, micVolume)}%`, height: '100%', background: '#92FE9D', transition: 'width 0.1s ease-out' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 60, height: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, micVolume)}%`, height: '100%', background: '#92FE9D', transition: 'width 0.1s ease-out' }} />
+                </div>
+                <div style={{ width: 30, fontSize: 13, fontWeight: 'bold', color: detectedNote ? '#92FE9D' : 'transparent' }}>
+                  {detectedNote ? getNoteName(detectedNote) : '-'}
+                </div>
               </div>
             )}
           </div>
