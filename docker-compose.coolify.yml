@@ -22,6 +22,8 @@ services:
       PORT: 3001
       NODE_ENV: production
       MIDI_SERVICE_URL: ${MIDI_SERVICE_URL:-http://midi-service:8000}
+    volumes:
+      - piano_uploads:/app/public/uploads
     networks:
       - coolify
     depends_on:
@@ -62,3 +64,6 @@ services:
       - piano-backend
     labels:
       - coolify.managed=true
+
+volumes:
+  piano_uploads:
