@@ -113,9 +113,10 @@ export function useMicrophonePitch(
       if (audioCtx.state === 'suspended') await audioCtx.resume();
 
       const analyser = audioCtx.createAnalyser();
-      // fftSize 2048 = 46ms window at 44.1kHz — ideal for tracking organ notes
-      // (down to ~43Hz). Prevents high frequencies (>= C5) from smearing due to vibrato.
-      analyser.fftSize = 2048;
+      // fftSize 4096 = 93ms window at 44.1kHz. 
+      // 2048 was too short for Macleod/AMDF to find periods for low piano notes reliably, 
+      // causing pitch tracking to fail. 8192 was too long (smeared high notes).
+      analyser.fftSize = 4096;
       analyserRef.current = analyser;
 
       const source = audioCtx.createMediaStreamSource(stream);
@@ -174,15 +175,17 @@ export function useMicrophonePitch(
         let frequency: number | null = null;
         let algo = 'none';
 
-        // Always normalize a copy of the buffer before pitch detection.
-        // Organ/Digital Pianos can have variable input volumes. Normalizing
-        // helps Macleod and YIN lock onto the fundamental instead of failing.
+        // Always normalize a copy of the buffer before pitch detection IF it's loud enough.
+        // Organ/Digital Pianos can have variable input volumes. Normalizing helps.
+        // But if we normalize silence/hiss (peak < 0.02), we destroy the pitch algorithms.
         const pitchBuffer = new Float32Array(buffer.length);
-        if (peak > 0) {
+        if (peak > 0.02) {
           const scale = 0.8 / peak;
           for (let i = 0; i < buffer.length; i++) {
             pitchBuffer[i] = buffer[i] * scale;
           }
+        } else {
+          for (let i = 0; i < buffer.length; i++) pitchBuffer[i] = buffer[i];
         }
 
         const mac = detectMacleod(pitchBuffer);
