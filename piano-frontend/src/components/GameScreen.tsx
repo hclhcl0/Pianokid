@@ -276,7 +276,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     }
   }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
 
-  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount } = useMicrophonePitch(
+  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount, bufferMax, algorithmUsed } = useMicrophonePitch(
     handlePitchDetected, 
     hasStarted && !showEndGame,
     setMicVolume
@@ -728,6 +728,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
                 ))}
                 <span style={{ color: stableCount >= 4 ? '#92FE9D' : '#aaa', marginLeft: 4 }}>
                   {stableCount >= 4 ? '→ FIRED ✅' : `${stableCount}/4`}
+                </span>
+              </div>
+
+              {/* Raw buffer peak — confirms audio data is actually flowing */}
+              <div style={{ marginBottom: 4 }}>
+                <span style={{ opacity: 0.7 }}>Buffer peak: </span>
+                <span style={{ color: bufferMax > 0.01 ? '#00C9FF' : '#ff6b6b', fontWeight: 'bold' }}>
+                  {bufferMax > 0 ? bufferMax.toFixed(3) : '0.000'}
+                  {bufferMax < 0.001 ? ' ← buffer trống! mic chưa nhận dữ liệu' : ''}
+                </span>
+              </div>
+
+              {/* Which algorithm detected the pitch */}
+              <div style={{ marginBottom: 4 }}>
+                <span style={{ opacity: 0.7 }}>Algo: </span>
+                <span style={{ color: algorithmUsed !== 'none' ? '#92FE9D' : '#666' }}>
+                  {algorithmUsed === 'none' ? '— (tất cả fail)' : `✅ ${algorithmUsed}`}
                 </span>
               </div>
 

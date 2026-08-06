@@ -6,10 +6,12 @@ interface MicrophonePitchResult {
   isEnabled: boolean;
   error: string | null;
   toggleMicrophone: () => void;
-  detectedNote: number | null;   // MIDI number of stable detected note
-  detectedFrequency: number | null; // Raw Hz from YIN (for diagnostics)
-  rmsVolume: number;             // 0-1 raw RMS (for diagnostics)
-  stableCount: number;           // current stability frame count (0-4)
+  detectedNote: number | null;
+  detectedFrequency: number | null;
+  rmsVolume: number;        // -1 = clipping, 0-1 = normal
+  stableCount: number;
+  bufferMax: number;        // raw peak value in buffer (confirms audio data is flowing)
+  algorithmUsed: string;   // which algorithm detected the frequency (for debugging)
 }
 
 /**
@@ -31,10 +33,11 @@ export function useMicrophonePitch(
   const [isEnabled, setIsEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedNote, setDetectedNote] = useState<number | null>(null);
-  // Diagnostic state — updated every frame for real-time display
   const [detectedFrequency, setDetectedFrequency] = useState<number | null>(null);
   const [rmsVolume, setRmsVolume] = useState<number>(0);
   const [stableCount, setStableCount] = useState<number>(0);
+  const [bufferMax, setBufferMax] = useState<number>(0);       // raw peak — confirms audio is flowing
+  const [algorithmUsed, setAlgorithmUsed] = useState<string>('none'); // which algo fired
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -118,13 +121,34 @@ export function useMicrophonePitch(
       source.connect(analyser);
 
       // ── 3-algorithm cascade for maximum organ/digital piano compatibility ──
+      // 0. FFT peak    — frequency-domain, works for ANY harmonic instrument
       // 1. Macleod (MPM) — best for harmonic-rich electronic instruments
       // 2. AMDF         — robust fallback, works well with sustained organ notes
-      // 3. ACF2PLUS     — last resort autocorrelation
       const detectMacleod = pitchfinder.Macleod({ sampleRate: audioCtx.sampleRate, bufferSize: analyser.fftSize });
       const detectAMDF    = pitchfinder.AMDF({ sampleRate: audioCtx.sampleRate, minFrequency: 27, maxFrequency: 4200 });
       const detectACF     = pitchfinder.ACF2PLUS({ sampleRate: audioCtx.sampleRate });
-      const buffer = new Float32Array(analyser.fftSize);
+      const freqBuffer    = new Float32Array(analyser.frequencyBinCount); // for FFT
+      const buffer        = new Float32Array(analyser.fftSize);
+
+      // FFT-based pitch: find strongest frequency bin in piano range
+      // Completely different approach from time-domain algorithms.
+      // Works reliably for organ/digital piano which has strong spectral peaks.
+      const detectFFT = (): number | null => {
+        analyser.getFloatFrequencyData(freqBuffer);
+        const binHz = (audioCtx.sampleRate / 2) / freqBuffer.length;
+        const minBin = Math.max(1, Math.floor(27 / binHz));
+        const maxBin = Math.min(freqBuffer.length - 2, Math.ceil(4200 / binHz));
+        let maxDb = -100, peakBin = -1;
+        for (let i = minBin; i <= maxBin; i++) {
+          if (freqBuffer[i] > maxDb) { maxDb = freqBuffer[i]; peakBin = i; }
+        }
+        if (maxDb < -60 || peakBin < 1) return null; // too quiet or no peak
+        // Parabolic interpolation for sub-bin accuracy
+        const y1 = freqBuffer[peakBin - 1], y2 = freqBuffer[peakBin], y3 = freqBuffer[peakBin + 1];
+        const denom = 2 * (2 * y2 - y1 - y3);
+        const refined = denom !== 0 ? peakBin + (y3 - y1) / denom : peakBin;
+        return refined * binHz;
+      };
 
       const loop = () => {
         analyser.getFloatTimeDomainData(buffer);
@@ -138,15 +162,14 @@ export function useMicrophonePitch(
           if (v > peak) peak = v;
         }
         const rms = Math.sqrt(sumSq / buffer.length);
-        const isClipping = peak > 0.95; // signal is saturating the ADC
+        const isClipping = peak > 0.95;
 
-        // Report volume to UI meter (throttled ~6fps)
         if (onVolumeChange && Math.random() < 0.1) {
           onVolumeChange(Math.min(100, rms * 800));
         }
-        // Update rmsVolume + clipping for diagnostic panel (throttled ~10fps)
         if (Math.random() < 0.17) {
-          setRmsVolume(isClipping ? -1 : rms); // -1 signals clipping to UI
+          setRmsVolume(isClipping ? -1 : rms);
+          setBufferMax(Math.round(peak * 1000) / 1000); // always show raw peak
         }
 
         // If clipping: normalize buffer so YIN can still analyze the pitch shape.
@@ -170,17 +193,33 @@ export function useMicrophonePitch(
           return;
         }
 
-        // ── 3. Pitch estimation — cascade: Macleod → AMDF → ACF2PLUS ────────
-        // Macleod (MPM) is superior for organ/digital piano harmonic content.
-        // Falls back to AMDF then ACF2PLUS if primary returns null.
-        const frequency = detectMacleod(buffer)
-          ?? detectAMDF(buffer)
-          ?? detectACF(buffer);
+        // ── 3. Pitch estimation — FFT first, then time-domain cascade ────────
+        // FFT approach: frequency-domain peak detection.
+        // Works for organ/digital piano regardless of waveform complexity.
+        let frequency: number | null = null;
+        let algo = 'none';
 
-        if (!frequency || frequency < 27 || frequency > 4200) {
+        const fftResult = detectFFT();
+        if (fftResult && fftResult >= 27 && fftResult <= 4200) {
+          frequency = fftResult; algo = 'FFT';
+        } else {
+          const mac = detectMacleod(buffer);
+          if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
+          else {
+            const amdf = detectAMDF(buffer);
+            if (amdf && amdf >= 27 && amdf <= 4200) { frequency = amdf; algo = 'AMDF'; }
+            else {
+              const acf = detectACF(buffer);
+              if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
+            }
+          }
+        }
+
+        if (!frequency) {
           if (Math.random() < 0.17) {
             setDetectedFrequency(null);
             setStableCount(0);
+            setAlgorithmUsed('none');
           }
           requestRef.current = requestAnimationFrame(loop);
           return;
@@ -192,6 +231,7 @@ export function useMicrophonePitch(
         if (Math.random() < 0.17) {
           setDetectedFrequency(Math.round(frequency * 10) / 10);
           setDetectedNote(midiNumber >= 21 && midiNumber <= 108 ? midiNumber : null);
+          setAlgorithmUsed(algo);
         }
 
         // ── 4. Onset gate — only trigger game events above onset threshold ──
@@ -245,5 +285,5 @@ export function useMicrophonePitch(
     return () => stopMic();
   }, [stopMic]);
 
-  return { isEnabled, error, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount };
+  return { isEnabled, error, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount, bufferMax, algorithmUsed };
 }
