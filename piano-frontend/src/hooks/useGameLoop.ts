@@ -134,14 +134,12 @@ export const useGameLoop = (
         });
       }
 
-      // Check held notes for completion
+      // Auto-complete held notes when the note's full duration has elapsed.
+      // We do NOT require the player to physically hold the key for the full duration —
+      // especially on touch screens where "tap" is the natural gesture.
       notesRef.current.forEach(note => {
-        if (note.isHeld) {
-          // A note finishes when currentTime reaches its end (start + duration)
-          // We add a tiny buffer (0.05s) to ensure it renders fully
-          if (currentTime >= note.startTime + note.duration - 0.05) {
-            note.isHeld = false; // Successfully held for full duration
-          }
+        if (note.isHeld && currentTime >= note.startTime + note.duration) {
+          note.isHeld = false; // Note naturally finished
         }
       });
 
@@ -281,21 +279,13 @@ export const useGameLoop = (
     [onHit, onBreakCombo]
   );
 
-  // ─── Process a note release from MIDI or keyboard (stop Hold) ───────────────
-  const processNoteOff = useCallback((midiNumber: number) => {
-    const ac = audioContextRef.current;
-    const cfg = configRef.current;
-    if (!ac || !cfg) return;
-    if (cfg.autoPlay) return;
-    
-    const currentTime = ac.currentTime;
-    
-    // Find any note for this key that is currently being held
-    const heldNotes = notesRef.current.filter(n => n.isHeld && n.midiNumber === midiNumber);
-    
-    heldNotes.forEach(note => {
-      note.isHeld = false;
-    });
+  // ─── Process a note release from MIDI or keyboard ──────────────────────────
+  // On touch screens: releasing the finger does NOT cut the note short.
+  // The note will auto-complete when its duration elapses (handled in the game loop).
+  // On physical MIDI/keyboard: same behavior — tap to hit, game holds automatically.
+  const processNoteOff = useCallback((_midiNumber: number) => {
+    // Intentionally a no-op: held notes complete via time, not finger release.
+    // This ensures fair gameplay on all input types (touch, keyboard, MIDI).
   }, []);
 
   // ─── Cleanup on unmount ──────────────────────────────────────────────────────
