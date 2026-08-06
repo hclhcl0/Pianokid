@@ -35,11 +35,23 @@ export function useMicrophonePitch(
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Create AudioContext synchronously during the user click event to satisfy iOS Safari
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       audioContextRef.current = audioCtx;
+
+      // Request microphone and disable iOS voice processing which filters out piano sounds
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        } 
+      });
+      streamRef.current = stream;
       
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 2048; // For pitchfinder, 2048 is good balance of resolution and speed
