@@ -5,7 +5,10 @@ interface MicrophonePitchResult {
   isEnabled: boolean;
   error: string | null;
   toggleMicrophone: () => void;
-  detectedNote: number | null;
+  detectedNote: number | null;   // MIDI number of stable detected note
+  detectedFrequency: number | null; // Raw Hz from YIN (for diagnostics)
+  rmsVolume: number;             // 0-1 raw RMS (for diagnostics)
+  stableCount: number;           // current stability frame count (0-4)
 }
 
 /**
@@ -27,6 +30,10 @@ export function useMicrophonePitch(
   const [isEnabled, setIsEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedNote, setDetectedNote] = useState<number | null>(null);
+  // Diagnostic state — updated every frame for real-time display
+  const [detectedFrequency, setDetectedFrequency] = useState<number | null>(null);
+  const [rmsVolume, setRmsVolume] = useState<number>(0);
+  const [stableCount, setStableCount] = useState<number>(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -124,6 +131,10 @@ export function useMicrophonePitch(
         if (onVolumeChange && Math.random() < 0.1) {
           onVolumeChange(Math.min(100, rms * 800));
         }
+        // Always update rmsVolume for diagnostic panel (throttled ~10fps)
+        if (Math.random() < 0.17) {
+          setRmsVolume(rms);
+        }
 
         // ── 2. Silence gate ─────────────────────────────────────────────────
         if (rms < RMS_SILENCE_THRESHOLD) {
@@ -164,23 +175,24 @@ export function useMicrophonePitch(
         if (midiNumber === stableNoteRef.current) {
           stableCountRef.current++;
         } else {
-          // New candidate note — reset counter
           stableNoteRef.current = midiNumber;
           stableCountRef.current = 1;
         }
 
-        // Update visual indicator at low rate to avoid render storms
-        if (Math.random() < 0.15) setDetectedNote(midiNumber);
+        // Update diagnostics every frame (throttled ~10fps for React perf)
+        if (Math.random() < 0.17) {
+          setDetectedFrequency(Math.round(frequency * 10) / 10);
+          setDetectedNote(midiNumber);
+          setStableCount(Math.min(stableCountRef.current, REQUIRED_STABLE_FRAMES));
+        }
 
         // ── 6. Onset fire — only fire once per note onset ───────────────────
         if (stableCountRef.current === REQUIRED_STABLE_FRAMES) {
-          // Note has been stable for N frames — this is a genuine onset
           if (midiNumber !== lastFiredNoteRef.current || inSilenceRef.current) {
             onNoteOn(midiNumber);
             lastFiredNoteRef.current = midiNumber;
             inSilenceRef.current = false;
           }
-          // Once fired, do not fire again until silence resets the gate
         }
 
         requestRef.current = requestAnimationFrame(loop);
@@ -201,5 +213,5 @@ export function useMicrophonePitch(
     return () => stopMic();
   }, [stopMic]);
 
-  return { isEnabled, error, toggleMicrophone, detectedNote };
+  return { isEnabled, error, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount };
 }

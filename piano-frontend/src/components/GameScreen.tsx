@@ -243,7 +243,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     }
   }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
 
-  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote } = useMicrophonePitch(
+  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote, detectedFrequency, rmsVolume, stableCount } = useMicrophonePitch(
     handlePitchDetected, 
     hasStarted && !showEndGame,
     setMicVolume
@@ -616,6 +616,74 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             onSettings={() => { stopGame(); setHasStarted(false); }}
             onToggleWaitMode={() => setWaitModeEnabled(v => !v)}
           />
+          {/* ── Live Mic Diagnostic Panel ── */}
+          {isMicEnabled && (
+            <div style={{
+              position: 'absolute', bottom: 8, right: 8, zIndex: 50,
+              background: 'rgba(0,0,0,0.75)', borderRadius: 12, padding: '8px 12px',
+              fontFamily: 'monospace', fontSize: 12, color: '#fff', minWidth: 190,
+              backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ color: '#92FE9D', fontWeight: 'bold', marginBottom: 6, fontSize: 11 }}>
+                🎤 MIC DIAGNOSTIC
+              </div>
+
+              {/* Volume bar */}
+              <div style={{ marginBottom: 4 }}>
+                <span style={{ opacity: 0.7 }}>Volume: </span>
+                <span style={{ color: rmsVolume > 0.015 ? '#92FE9D' : rmsVolume > 0.008 ? '#FFD700' : '#ff6b6b' }}>
+                  {rmsVolume > 0.015 ? '✅' : rmsVolume > 0.008 ? '⚠️' : '🔴'} {(rmsVolume * 1000).toFixed(1)}
+                </span>
+                <div style={{ marginTop: 2, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 2 }}>
+                  <div style={{
+                    width: `${Math.min(100, rmsVolume * 5000)}%`,
+                    height: '100%', borderRadius: 2,
+                    background: rmsVolume > 0.015 ? '#92FE9D' : rmsVolume > 0.008 ? '#FFD700' : '#ff6b6b',
+                    transition: 'width 0.05s'
+                  }} />
+                </div>
+              </div>
+
+              {/* Frequency */}
+              <div style={{ marginBottom: 4 }}>
+                <span style={{ opacity: 0.7 }}>Frequency: </span>
+                <span style={{ color: detectedFrequency ? '#00C9FF' : '#666' }}>
+                  {detectedFrequency ? `${detectedFrequency} Hz` : '—'}
+                </span>
+              </div>
+
+              {/* MIDI Note */}
+              <div style={{ marginBottom: 4 }}>
+                <span style={{ opacity: 0.7 }}>Note: </span>
+                <span style={{ color: detectedNote ? '#FFD700' : '#666', fontWeight: 'bold', fontSize: 14 }}>
+                  {detectedNote ? getNoteName(detectedNote) : '—'}
+                  {detectedNote ? ` (MIDI ${detectedNote})` : ''}
+                </span>
+              </div>
+
+              {/* Stability buffer */}
+              <div>
+                <span style={{ opacity: 0.7 }}>Ổn định: </span>
+                {[1, 2, 3, 4].map(i => (
+                  <span key={i} style={{
+                    display: 'inline-block', width: 10, height: 10,
+                    borderRadius: 2, marginRight: 2,
+                    background: i <= stableCount ? '#92FE9D' : 'rgba(255,255,255,0.2)',
+                    transition: 'background 0.05s'
+                  }} />
+                ))}
+                <span style={{ color: stableCount >= 4 ? '#92FE9D' : '#aaa', marginLeft: 4 }}>
+                  {stableCount >= 4 ? '→ FIRED ✅' : `${stableCount}/4`}
+                </span>
+              </div>
+
+              {/* Thresholds legend */}
+              <div style={{ marginTop: 6, fontSize: 10, opacity: 0.5, lineHeight: 1.4 }}>
+                🔴 &lt;0.008 im lặng · ⚠️ 0.008-0.015 yếu · ✅ &gt;0.015 OK
+              </div>
+            </div>
+          )}
           
           {currentChordName && (
             <div style={{ position: 'absolute', bottom: Math.min(dimensions.height * 0.3, (dimensions.width / NUM_WHITE_KEYS) * 5) + 12, left: 16, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
