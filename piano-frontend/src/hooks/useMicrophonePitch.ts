@@ -53,7 +53,7 @@ export function useMicrophonePitch(
   const inSilenceRef = useRef<boolean>(true);            // whether mic is currently in silence
 
   const REQUIRED_STABLE_FRAMES = 3;    // ~3 frames @ 60fps ≈ 50ms (faster response)
-  const RMS_ONSET_THRESHOLD = 0.006;   // volume to trigger game events (was 0.015)
+  const RMS_ONSET_THRESHOLD = 0.003;   // lowered from 0.006 to allow softer organ notes
   const RMS_SILENCE_THRESHOLD = 0.002; // below this = true silence (was 0.008)
 
   const stopMic = useCallback(() => {
@@ -200,51 +200,25 @@ export function useMicrophonePitch(
           }
         }
 
-        if (!frequency) {
-          // Push -1 to history to age out old notes smoothly instead of hard reset
-          const history = noteHistoryRef.current;
-          history.push(-1);
-          if (history.length > 5) history.shift();
+        let midiNumber = frequency ? Math.round(12 * Math.log2(frequency / 440) + 69) : -1;
 
-          if (Math.random() < 0.17) {
-            setDetectedFrequency(null);
-            setStableCount(0);
-            setAlgorithmUsed('none');
-          }
-          requestRef.current = requestAnimationFrame(loop);
-          return;
+        if (midiNumber !== -1 && (midiNumber < 21 || midiNumber > 108)) {
+          midiNumber = -1; // Out of piano range
         }
 
-        const midiNumber = Math.round(12 * Math.log2(frequency / 440) + 69);
-
-        // Update diagnostics every frame (throttled ~10fps)
-        if (Math.random() < 0.17) {
-          setDetectedFrequency(Math.round(frequency * 10) / 10);
-          setDetectedNote(midiNumber >= 21 && midiNumber <= 108 ? midiNumber : null);
-          setAlgorithmUsed(algo);
-        }
-
-        // ── 4. Onset gate — only trigger game events above onset threshold ──
+        // Onset gate: if game is paused or volume too low for a strike, treat as null
         if (!active || rms < RMS_ONSET_THRESHOLD) {
-          requestRef.current = requestAnimationFrame(loop);
-          return;
-        }
-
-        if (midiNumber < 21 || midiNumber > 108) {
-          requestRef.current = requestAnimationFrame(loop);
-          return;
+          midiNumber = -1;
         }
 
         // ── 5. Stability buffer — Sliding Window Majority Vote ──────────────
-        // Instead of requiring strict consecutive frames, we look at the last
-        // 5 frames. If a note appears >= REQUIRED_STABLE_FRAMES times, it's stable.
         const history = noteHistoryRef.current;
         history.push(midiNumber);
         if (history.length > 5) history.shift();
 
         const counts = new Map<number, number>();
         let maxCount = 0;
-        let dominantNote = midiNumber;
+        let dominantNote = -1;
         for (const n of history) {
           if (n === -1) continue;
           const c = (counts.get(n) || 0) + 1;
@@ -255,16 +229,24 @@ export function useMicrophonePitch(
           }
         }
 
-        stableNoteRef.current = dominantNote;
+        stableNoteRef.current = dominantNote === -1 ? null : dominantNote;
         stableCountRef.current = maxCount;
 
-        // Update stableCount for the diagnostic progress bar
+        // Update diagnostics every frame (throttled ~10fps)
         if (Math.random() < 0.17) {
+          if (frequency && midiNumber !== -1) {
+            setDetectedFrequency(Math.round(frequency * 10) / 10);
+            setDetectedNote(midiNumber);
+            setAlgorithmUsed(algo);
+          } else {
+            setDetectedFrequency(null);
+            setAlgorithmUsed('none');
+          }
           setStableCount(Math.min(stableCountRef.current, REQUIRED_STABLE_FRAMES));
         }
 
         // ── 6. Onset fire — only fire once per note onset ───────────────────
-        if (stableCountRef.current >= REQUIRED_STABLE_FRAMES) {
+        if (stableCountRef.current >= REQUIRED_STABLE_FRAMES && dominantNote !== -1) {
           if (dominantNote !== lastFiredNoteRef.current || inSilenceRef.current) {
             onNoteOn(dominantNote);
             lastFiredNoteRef.current = dominantNote;
