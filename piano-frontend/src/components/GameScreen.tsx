@@ -235,7 +235,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   );
 
   const handlePitchDetected = useCallback((midiNumber: number) => {
-    if (hasStarted && !showEndGame) processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
+    if (hasStarted && !showEndGame) {
+      // isMicInput=true: a wrong pitch detection must NEVER break the player's combo
+      processNoteHit(midiNumber, config.hitWindowMs, calculateHit, true);
+    }
   }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
 
   const { isEnabled: isMicEnabled, error: micError, toggleMicrophone, detectedNote } = useMicrophonePitch(

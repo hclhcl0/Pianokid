@@ -201,12 +201,13 @@ export const useGameLoop = (
     setActiveNotes([]);
   }, []);
 
-  // ─── Process a note hit from MIDI or keyboard ────────────────────────────────
+  // ─── Process a note hit from touch / keyboard / MIDI / microphone ─────────────
   const processNoteHit = useCallback(
     (
       midiNumber: number,
       hitWindowMs: number,
-      calculateHit: (diff: number, windowMs: number) => HitResult
+      calculateHit: (diff: number, windowMs: number) => HitResult,
+      isMicInput: boolean = false   // mic input never breaks combo (inherently imprecise)
     ) => {
       const ac = audioContextRef.current;
       const cfg = configRef.current;
@@ -240,7 +241,8 @@ export const useGameLoop = (
 
       if (candidates.length === 0) {
         // User pressed a key that is NOT near the hit zone
-        if (!waitMode) {
+        // Mic input is excused from combo-break because pitch detection is inherently noisy
+        if (!waitMode && !isMicInput) {
           onBreakCombo?.();
         }
         return;
