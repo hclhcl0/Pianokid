@@ -47,9 +47,9 @@ export function useMicrophonePitch(
   const lastFiredNoteRef = useRef<number | null>(null);  // last note sent to game
   const inSilenceRef = useRef<boolean>(true);            // whether mic is currently in silence
 
-  const REQUIRED_STABLE_FRAMES = 4;   // ~4 frames @ 60fps ≈ 67ms stability window
-  const RMS_ONSET_THRESHOLD = 0.015;  // minimum volume to consider a note started
-  const RMS_SILENCE_THRESHOLD = 0.008; // volume below which we consider silence
+  const REQUIRED_STABLE_FRAMES = 3;    // ~3 frames @ 60fps ≈ 50ms (faster response)
+  const RMS_ONSET_THRESHOLD = 0.006;   // volume to trigger game events (was 0.015)
+  const RMS_SILENCE_THRESHOLD = 0.002; // below this = true silence (was 0.008)
 
   const stopMic = useCallback(() => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
@@ -108,15 +108,18 @@ export function useMicrophonePitch(
       if (audioCtx.state === 'suspended') await audioCtx.resume();
 
       const analyser = audioCtx.createAnalyser();
-      // fftSize 4096 covers at least 2 full periods of A0 (27.5Hz) at 44.1kHz sample rate
-      analyser.fftSize = 4096;
+      // fftSize 8192 = 186ms window at 44.1kHz — gives YIN enough data for low piano notes
+      // Trade-off: slightly more latency but much better detection of piano timbre
+      analyser.fftSize = 8192;
       analyserRef.current = analyser;
 
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
 
-      // YIN: threshold 0.15 balances accuracy vs latency for piano notes
-      const detectPitch = YIN({ sampleRate: audioCtx.sampleRate, threshold: 0.15 });
+      // YIN threshold 0.25: more permissive than default 0.15
+      // Piano has complex overtones that make YIN return null with strict thresholds.
+      // 0.25 accepts more uncertain detections — the stability buffer catches false positives.
+      const detectPitch = YIN({ sampleRate: audioCtx.sampleRate, threshold: 0.25 });
       const buffer = new Float32Array(analyser.fftSize);
 
       const loop = () => {
