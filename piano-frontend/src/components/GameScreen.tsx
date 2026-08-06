@@ -70,6 +70,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const lastNoteEndTimeRef = useRef<number>(0);
   const [userActiveKeys, setUserActiveKeys] = useState<Set<number>>(new Set());
   const userActiveKeysRef = useRef<Set<number>>(new Set());
+  const [micVolume, setMicVolume] = useState<number>(0);
 
   // Keep ref in sync
   useEffect(() => {
@@ -232,7 +233,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     if (hasStarted && !showEndGame) processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
   }, [hasStarted, showEndGame, processNoteHit, config.hitWindowMs, calculateHit]);
 
-  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone } = useMicrophonePitch(handlePitchDetected, hasStarted && !showEndGame);
+  const { isEnabled: isMicEnabled, error: micError, toggleMicrophone } = useMicrophonePitch(
+    handlePitchDetected, 
+    hasStarted && !showEndGame,
+    setMicVolume
+  );
 
   const handleScreenKeyPress = useCallback((midiNumber: number) => {
     setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
@@ -540,6 +545,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             <button onClick={toggleMicrophone} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: isMicEnabled ? 'linear-gradient(135deg,#00C9FF,#92FE9D)' : 'rgba(255,255,255,0.15)', color: isMicEnabled ? '#000' : '#fff' }}>
               {isMicEnabled ? 'ON' : 'OFF'}
             </button>
+            {isMicEnabled && (
+              <div style={{ width: 60, height: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, micVolume)}%`, height: '100%', background: '#92FE9D', transition: 'width 0.1s ease-out' }} />
+              </div>
+            )}
           </div>
           {micError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{micError}</p>}
           {midiError ? <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 20px' }}>⚠️ {midiError}</p> : <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>MIDI: {isConnected ? '🟢 Connected' : '🔴 Not connected'}</p>}

@@ -9,7 +9,8 @@ interface MicrophonePitchResult {
 
 export function useMicrophonePitch(
   onNoteOn: (midiNumber: number) => void,
-  active: boolean = true
+  active: boolean = true,
+  onVolumeChange?: (volume: number) => void
 ): MicrophonePitchResult {
   const [isEnabled, setIsEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +53,14 @@ export function useMicrophonePitch(
         } 
       });
       streamRef.current = stream;
+
+      // iOS Safari might suspend the context while waiting for mic permission
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
       
       const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048; // For pitchfinder, 2048 is good balance of resolution and speed
+      analyser.fftSize = 2048; 
       analyserRef.current = analyser;
       
       const source = audioCtx.createMediaStreamSource(stream);
@@ -80,7 +86,12 @@ export function useMicrophonePitch(
 
         const now = Date.now();
 
-        if (rms > 0.015) { // Minimum volume threshold
+        // Throttle volume callback to ~10fps
+        if (onVolumeChange && Math.random() < 0.1) {
+          onVolumeChange(Math.min(100, rms * 1000));
+        }
+
+        if (rms > 0.005) { // Lowered threshold for iPad sensitivity
           const frequency = detectPitch(float32Array);
           
           if (frequency && frequency > 50 && frequency < 3000) { // Reasonable piano range
