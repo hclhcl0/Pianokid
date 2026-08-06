@@ -6,3 +6,4 @@ mido
 python-dotenv
 pydantic
 requests
+music21
