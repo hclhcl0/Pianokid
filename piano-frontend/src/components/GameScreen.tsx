@@ -542,7 +542,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             </button>
           </div>
           {micError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{micError}</p>}
-          {midiError ? <p className="error">{midiError}</p> : <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>MIDI: {isConnected ? '🟢 Connected' : '🔴 Not connected'}</p>}
+          {midiError ? <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 20px' }}>⚠️ {midiError}</p> : <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>MIDI: {isConnected ? '🟢 Connected' : '🔴 Not connected'}</p>}
           <p style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>No MIDI? Use keyboard: <b>K=C4 · Z=G4 · X=A4 · L=D4 · ;=E4 · '=F4</b></p>
           {loadingNotes ? <p>Loading notes...</p> : notesError ? <p style={{ color: 'red' }}>Error: {notesError}</p> : (
             <button className="start-btn" onClick={handleStart} style={{ fontFamily: 'Nunito, sans-serif' }}>▶ START GAME</button>
