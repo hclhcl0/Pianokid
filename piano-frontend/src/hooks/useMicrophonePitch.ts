@@ -138,35 +138,49 @@ export function useMicrophonePitch(
 
         // ── 2. Silence gate ─────────────────────────────────────────────────
         if (rms < RMS_SILENCE_THRESHOLD) {
-          // Below silence threshold: reset stability buffer and allow next onset
           stableNoteRef.current = null;
           stableCountRef.current = 0;
           inSilenceRef.current = true;
-          if (Math.random() < 0.15) setDetectedNote(null);
+          if (Math.random() < 0.17) {
+            setDetectedNote(null);
+            setDetectedFrequency(null);
+            setStableCount(0);
+          }
           requestRef.current = requestAnimationFrame(loop);
           return;
         }
 
-        // ── 3. Onset gate — only process when active and above onset threshold ──
+        // ── 3. YIN pitch estimation (always runs for diagnostics) ───────────
+        // We run this even when below onset threshold so the diagnostic panel
+        // can show the frequency — helping the user understand if YIN detects
+        // their piano at all, even when the volume is a bit low.
+        const frequency = detectPitch(buffer);
+
+        if (!frequency || frequency < 27 || frequency > 4200) {
+          // Out of piano range or no clear pitch found
+          if (Math.random() < 0.17) {
+            setDetectedFrequency(null);
+            setStableCount(0);
+          }
+          requestRef.current = requestAnimationFrame(loop);
+          return;
+        }
+
+        const midiNumber = Math.round(12 * Math.log2(frequency / 440) + 69);
+
+        // Update diagnostics every frame (throttled ~10fps)
+        if (Math.random() < 0.17) {
+          setDetectedFrequency(Math.round(frequency * 10) / 10);
+          setDetectedNote(midiNumber >= 21 && midiNumber <= 108 ? midiNumber : null);
+        }
+
+        // ── 4. Onset gate — only trigger game events above onset threshold ──
         if (!active || rms < RMS_ONSET_THRESHOLD) {
           requestRef.current = requestAnimationFrame(loop);
           return;
         }
 
-        // ── 4. YIN pitch estimation ─────────────────────────────────────────
-        const frequency = detectPitch(buffer);
-        if (!frequency || frequency < 27 || frequency > 4200) {
-          // Outside piano range or undefined → reset stability
-          stableNoteRef.current = null;
-          stableCountRef.current = 0;
-          requestRef.current = requestAnimationFrame(loop);
-          return;
-        }
-
-        // Convert frequency to MIDI note number
-        const midiNumber = Math.round(12 * Math.log2(frequency / 440) + 69);
         if (midiNumber < 21 || midiNumber > 108) {
-          // Outside 88-key piano range
           requestRef.current = requestAnimationFrame(loop);
           return;
         }
@@ -179,10 +193,8 @@ export function useMicrophonePitch(
           stableCountRef.current = 1;
         }
 
-        // Update diagnostics every frame (throttled ~10fps for React perf)
+        // Update stableCount for the diagnostic progress bar
         if (Math.random() < 0.17) {
-          setDetectedFrequency(Math.round(frequency * 10) / 10);
-          setDetectedNote(midiNumber);
           setStableCount(Math.min(stableCountRef.current, REQUIRED_STABLE_FRAMES));
         }
 

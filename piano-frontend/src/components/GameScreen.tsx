@@ -619,9 +619,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
           {/* ── Live Mic Diagnostic Panel ── */}
           {isMicEnabled && (
             <div style={{
-              position: 'absolute', bottom: 8, right: 8, zIndex: 50,
-              background: 'rgba(0,0,0,0.75)', borderRadius: 12, padding: '8px 12px',
-              fontFamily: 'monospace', fontSize: 12, color: '#fff', minWidth: 190,
+              position: 'absolute', top: 60, right: 8, zIndex: 50,
+              background: 'rgba(0,0,0,0.82)', borderRadius: 12, padding: '8px 12px',
+              fontFamily: 'monospace', fontSize: 12, color: '#fff', minWidth: 200,
               backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)',
               pointerEvents: 'none',
             }}>
