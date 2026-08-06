@@ -46,6 +46,7 @@ export function useMicrophonePitch(
   const dummyAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Onset detection state
+  const noteHistoryRef = useRef<number[]>([]);           // sliding window (max 5 frames)
   const stableNoteRef = useRef<number | null>(null);    // current candidate note
   const stableCountRef = useRef<number>(0);              // consecutive frame count
   const lastFiredNoteRef = useRef<number | null>(null);  // last note sent to game
@@ -156,6 +157,7 @@ export function useMicrophonePitch(
 
         // ── 2. Silence gate ─────────────────────────────────────────────────
         if (rms < RMS_SILENCE_THRESHOLD) {
+          noteHistoryRef.current = [];
           stableNoteRef.current = null;
           stableCountRef.current = 0;
           inSilenceRef.current = true;
@@ -199,6 +201,11 @@ export function useMicrophonePitch(
         }
 
         if (!frequency) {
+          // Push -1 to history to age out old notes smoothly instead of hard reset
+          const history = noteHistoryRef.current;
+          history.push(-1);
+          if (history.length > 5) history.shift();
+
           if (Math.random() < 0.17) {
             setDetectedFrequency(null);
             setStableCount(0);
@@ -228,13 +235,28 @@ export function useMicrophonePitch(
           return;
         }
 
-        // ── 5. Stability buffer — require N consecutive frames of same note ──
-        if (midiNumber === stableNoteRef.current) {
-          stableCountRef.current++;
-        } else {
-          stableNoteRef.current = midiNumber;
-          stableCountRef.current = 1;
+        // ── 5. Stability buffer — Sliding Window Majority Vote ──────────────
+        // Instead of requiring strict consecutive frames, we look at the last
+        // 5 frames. If a note appears >= REQUIRED_STABLE_FRAMES times, it's stable.
+        const history = noteHistoryRef.current;
+        history.push(midiNumber);
+        if (history.length > 5) history.shift();
+
+        const counts = new Map<number, number>();
+        let maxCount = 0;
+        let dominantNote = midiNumber;
+        for (const n of history) {
+          if (n === -1) continue;
+          const c = (counts.get(n) || 0) + 1;
+          counts.set(n, c);
+          if (c > maxCount) {
+            maxCount = c;
+            dominantNote = n;
+          }
         }
+
+        stableNoteRef.current = dominantNote;
+        stableCountRef.current = maxCount;
 
         // Update stableCount for the diagnostic progress bar
         if (Math.random() < 0.17) {
@@ -242,10 +264,10 @@ export function useMicrophonePitch(
         }
 
         // ── 6. Onset fire — only fire once per note onset ───────────────────
-        if (stableCountRef.current === REQUIRED_STABLE_FRAMES) {
-          if (midiNumber !== lastFiredNoteRef.current || inSilenceRef.current) {
-            onNoteOn(midiNumber);
-            lastFiredNoteRef.current = midiNumber;
+        if (stableCountRef.current >= REQUIRED_STABLE_FRAMES) {
+          if (dominantNote !== lastFiredNoteRef.current || inSilenceRef.current) {
+            onNoteOn(dominantNote);
+            lastFiredNoteRef.current = dominantNote;
             inSilenceRef.current = false;
           }
         }
