@@ -287,14 +287,8 @@ export const useGameLoop = (
     
     heldNotes.forEach(note => {
       note.isHeld = false;
-      
-      // If released early (more than 0.15s before the note ends), count as a combo break/miss!
-      if (currentTime < note.startTime + note.duration - 0.15) {
-        // We could subtract points or just trigger onMiss to reset combo
-        onMiss(note); 
-      }
     });
-  }, [onMiss]);
+  }, []);
 
   // ─── Cleanup on unmount ──────────────────────────────────────────────────────
   useEffect(() => {
