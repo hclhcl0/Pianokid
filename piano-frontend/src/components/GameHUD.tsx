@@ -5,12 +5,14 @@ interface GameHUDProps {
   combo: number;
   stars: number;
   waitMode: boolean;
+  isMuted: boolean;
   onPause: () => void;
   onSettings: () => void;
   onToggleWaitMode?: () => void;
+  onToggleMute: () => void;
 }
 
-export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, onPause, onSettings, onToggleWaitMode }) => {
+export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode, isMuted, onPause, onSettings, onToggleWaitMode, onToggleMute }) => {
   return (
     <div className="hud-overlay">
       <div className="hud-top">
@@ -38,6 +40,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({ score, combo, stars, waitMode,
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+            <button className="pause-btn glass" onClick={onToggleMute} style={{ fontSize: 22, padding: '8px 14px', background: isMuted ? 'rgba(255, 50, 50, 0.4)' : '' }} title={isMuted ? "Bật tiếng Piano Game" : "Tắt tiếng Piano Game (Dành cho đàn có tiếng riêng)"}>
+              {isMuted ? '🔇' : '🔊'}
+            </button>
             <button className="pause-btn glass" onClick={onPause} style={{ fontSize: 22, padding: '8px 14px' }} title="Tạm dừng">
               ⏸
             </button>

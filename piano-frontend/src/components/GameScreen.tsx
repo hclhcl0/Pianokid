@@ -81,6 +81,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   
   const [keyboardRange, setKeyboardRange] = useState<KeyboardRange>(DEFAULT_RANGE);
   const [numOctaves, setNumOctaves] = useState<number>(5); // sẽ được tính lại sau khi load notes
+  const [isMuted, setIsMuted] = useState<boolean>(false);
 
   // Giải phóng AudioBuffer khi rời khỏi bài
   useEffect(() => {
@@ -228,7 +229,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     const numWhite = keyboardRange.numWhiteKeys || 14;
     const keyHeight = Math.min(dimensions.height * 0.3, (dimensions.width / numWhite) * 5);
     const y = dimensions.height - keyHeight;
-    if (config.autoPlay) soundEffects.playPianoNote(note.midiNumber);
+    if (config.autoPlay && !isMuted) soundEffects.playPianoNote(note.midiNumber);
     // particleSystem.current?.emitHit(x, y, result as 'perfect' | 'good');
     if (!config.autoPlay) {
       const id = crypto.randomUUID();
@@ -257,7 +258,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
     e => {
       setUserActiveKeys(prev => { const n = new Set(prev); n.add(e.midiNumber); return n; });
       userActiveKeysRef.current.add(e.midiNumber); // Sync update
-      soundEffects.playPianoNote(e.midiNumber);
+      if (!isMuted) soundEffects.playPianoNote(e.midiNumber);
       if (hasStarted && !showEndGame) {
         processNoteHit(e.midiNumber, config.hitWindowMs, calculateHit);
       }
@@ -290,7 +291,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const handleScreenKeyPress = useCallback((midiNumber: number) => {
     setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
     userActiveKeysRef.current.add(midiNumber); // Sync update for game loop
-    soundEffects.playPianoNote(midiNumber);
+    if (!isMuted) soundEffects.playPianoNote(midiNumber);
     if (hasStarted && !showEndGame) {
       processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
     }
@@ -311,7 +312,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
       if (midiNumber !== undefined) {
         setUserActiveKeys(prev => { const n = new Set(prev); n.add(midiNumber); return n; });
         userActiveKeysRef.current.add(midiNumber); // Sync update
-        soundEffects.playPianoNote(midiNumber);
+        if (!isMuted) soundEffects.playPianoNote(midiNumber);
         if (hasStarted && !showEndGame) {
           processNoteHit(midiNumber, config.hitWindowMs, calculateHit);
         }
@@ -658,12 +659,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
             score={score}
             combo={combo}
             stars={stars}
-            waitMode={config.waitMode}
-            onPause={isPaused ? resumeGame : pauseGame}
+            waitMode={waitModeEnabled}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(prev => !prev)}
+            onPause={gameState.isPaused ? resumeGame : pauseGame}
             onSettings={() => { stopGame(); setHasStarted(false); }}
-            onToggleWaitMode={() => setWaitModeEnabled(v => !v)}
+            onToggleWaitMode={() => {
+              const newVal = !waitModeEnabled;
+              setWaitModeEnabled(newVal);
+              if (newVal && !isMicEnabled) toggleMicrophone();
+            }}
           />
-          {/* ── Live Mic Diagnostic Panel ── */}
           {isMicEnabled && (
             <div style={{
               position: 'absolute', top: 60, right: 8, zIndex: 50,

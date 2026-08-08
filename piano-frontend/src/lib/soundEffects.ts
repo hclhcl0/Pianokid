@@ -45,7 +45,7 @@ class SoundEffects {
     }
   }
 
-  playPianoNote(midi: number, velocityGain = 0.85): void {
+  playPianoNote(midi: number, velocityGain = 0.45): void {
     if (typeof window === 'undefined') return;
     
     this.init();
