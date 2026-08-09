@@ -2,6 +2,7 @@ import { Soundfont } from 'smplr';
 
 class SoundEffects {
   context: AudioContext | null = null;
+  masterCompressor: DynamicsCompressorNode | null = null;
   piano: any = null;
   isLoaded = false;
   isLoading = false;
@@ -22,9 +23,20 @@ class SoundEffects {
       this.isLoading = true;
       console.log('[Piano] Loading Musescore-quality Soundfont (MusyngKite)...');
       
+      if (!this.masterCompressor) {
+        this.masterCompressor = this.context.createDynamicsCompressor();
+        this.masterCompressor.threshold.value = -10;
+        this.masterCompressor.knee.value = 40;
+        this.masterCompressor.ratio.value = 12;
+        this.masterCompressor.attack.value = 0;
+        this.masterCompressor.release.value = 0.25;
+        this.masterCompressor.connect(this.context.destination);
+      }
+      
       this.piano = new Soundfont(this.context, { 
         instrument: 'acoustic_grand_piano',
-        kit: 'MusyngKite' 
+        kit: 'MusyngKite',
+        destination: this.masterCompressor
       });
       
       // smplr returns a promise on .loaded()
@@ -45,7 +57,7 @@ class SoundEffects {
     }
   }
 
-  playPianoNote(midi: number, velocityGain = 0.45): void {
+  playPianoNote(midi: number, velocityGain = 0.9): void {
     if (typeof window === 'undefined') return;
     
     this.init();
