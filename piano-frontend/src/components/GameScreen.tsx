@@ -40,10 +40,11 @@ function getChordName(midiNumbers: number[]): string {
 
 interface GameScreenProps {
   lesson: import('../types').Lesson;
-  onBack: () => void;
+  allLessons: import('../types').Lesson[];
+  onSelectLesson: (lesson: import('../types').Lesson) => void;
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ lesson, allLessons, onSelectLesson }) => {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [hasStarted, setHasStarted] = useState(false);
   const [feedbacks, setFeedbacks] = useState<FeedbackData[]>([]);
@@ -511,165 +512,125 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
   const isPaused = gameState.isPaused || waitingForNote !== null;
 
   return (
-    <div className="game-screen" style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
-      {!hasStarted ? (
-        <div className="start-screen glass">
-          <button onClick={onBack} style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '12px', padding: '10px 16px', color: '#fff', cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
-            ← Back to Lessons
-          </button>
-          <h1 style={{ fontFamily: 'Nunito, sans-serif' }}>🎹 {lesson.title}</h1>
-          <p style={{ marginBottom: 8, opacity: 0.8 }}>Level {lesson.level} • {lesson.tempo} BPM</p>
-
-          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>⏸ Wait Mode</span>
-            <button onClick={() => setWaitModeEnabled(v => !v)} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: waitModeEnabled ? 'linear-gradient(135deg,#FFD700,#FFA500)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              {waitModeEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
-          
-          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>🤖 Auto Play</span>
-            <button onClick={() => setAutoPlayEnabled(v => !v)} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: autoPlayEnabled ? 'linear-gradient(135deg,#FF416C,#FF4B2B)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              {autoPlayEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
-
-          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>🚀 Speed</span>
-            {[0.5, 0.75, 1, 1.25].map(val => (
-              <button key={val} onClick={() => setSpeed(val)} style={{ padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, background: speed === val ? 'linear-gradient(135deg,#00C9FF,#92FE9D)' : 'rgba(255,255,255,0.15)', color: speed === val ? '#000' : '#fff' }}>
-                {val}x
-              </button>
+    <div className="game-screen" style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      
+      {/* ── TOP BAR (Unified Settings & Song Selector) ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(10px)',
+        padding: '8px 16px',
+        gap: 16,
+        overflowX: 'auto',
+        whiteSpace: 'nowrap',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        zIndex: 100,
+        height: '60px',
+        flexShrink: 0,
+        WebkitOverflowScrolling: 'touch'
+      }}>
+        
+        {/* Song Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>🎹</span>
+          <select 
+            value={lesson.id} 
+            onChange={e => {
+               const newLesson = allLessons.find(l => l.id === e.target.value);
+               if (newLesson) {
+                 stopGame();
+                 setHasStarted(false);
+                 onSelectLesson(newLesson);
+               }
+            }}
+            style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontFamily: 'Nunito', fontSize: 14, outline: 'none', cursor: 'pointer', maxWidth: 200 }}
+          >
+            {allLessons.map(l => (
+              <option key={l.id} value={l.id} style={{ color: '#000' }}>{l.title} (Lv {l.level})</option>
             ))}
-          </div>
+          </select>
+        </div>
 
-          {viewMode === 'falling' && (
-            <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <span style={{ fontSize: 16, opacity: 0.9 }}>🎸 Hợp âm (Trái)</span>
-              <button onClick={() => setChordMode('simple')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'simple' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                Đơn giản (Bass)
-              </button>
-              <button onClick={() => setChordMode('full')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'full' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                Đầy đủ (Chord)
-              </button>
-              <button onClick={() => setChordMode('arpeggio')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: chordMode === 'arpeggio' ? 'linear-gradient(135deg,#11998e,#38ef7d)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                Rải (Arpeggio)
-              </button>
-            </div>
+        {/* Playback Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+          {loadingNotes ? <span style={{fontSize: 14, color: '#FFD700'}}>Đang tải...</span> : (
+            <button 
+              onClick={hasStarted ? (isPaused ? resumeGame : pauseGame) : handleStart} 
+              style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: hasStarted && !isPaused ? 'rgba(255,200,0,0.8)' : '#00C9FF', fontWeight: 'bold', cursor: 'pointer', color: '#000', fontSize: 14 }}
+            >
+              {hasStarted ? (isPaused ? '▶ TIẾP TỤC' : '⏸ TẠM DỪNG') : '▶ BẮT ĐẦU'}
+            </button>
           )}
-
-          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>👁️ Giao diện</span>
-            <button onClick={() => setViewMode('falling')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: viewMode === 'falling' ? 'linear-gradient(135deg,#8E2DE2,#4A00E0)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              Nốt rơi
+          {hasStarted && (
+            <button onClick={() => { stopGame(); setHasStarted(false); }} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: 'rgba(255,50,50,0.8)', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: 14 }}>
+              ⏹ DỪNG
             </button>
-            <button onClick={() => setViewMode('sheet')} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: viewMode === 'sheet' ? 'linear-gradient(135deg,#8E2DE2,#4A00E0)' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-              Bản nhạc
-            </button>
-          </div>
-
-          {/* Removed VexFlow vs OSMD toggle. Now exclusively using robust OSMD. */}
-
-
-          {/* ── Số quãng bàn phím ─────────────────────────────── */}
-          <div style={{ margin: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>🎹 Số quãng</span>
-            <button
-              onClick={() => { const n = Math.max(2, numOctaves - 1); setNumOctaves(n); const allMidi = loadedNotes.map(x => x.midiNumber); setKeyboardRange(buildKeyboardRange(Math.min(...allMidi), Math.max(...allMidi), n)); }}
-              style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 20, fontWeight: 'bold' }}>
-              -
-            </button>
-            <div style={{ textAlign: 'center', minWidth: 80 }}>
-              <span style={{ fontSize: 26, fontWeight: 900, color: '#FFD700' }}>{numOctaves}</span>
-              <div style={{ fontSize: 11, opacity: 0.7 }}>quãng • {numOctaves * 7 + 1} phím trắng</div>
-              <div style={{ fontSize: 11, opacity: 0.6 }}>{Math.round(dimensions.width / (numOctaves * 7 + 1))}px/phím
-                {dimensions.width / (numOctaves * 7 + 1) >= 44 ? ' ✅' : dimensions.width / (numOctaves * 7 + 1) >= 32 ? ' ⚠️' : ' ❌'}
-              </div>
-            </div>
-            <button
-              onClick={() => { const n = Math.min(5, numOctaves + 1); setNumOctaves(n); const allMidi = loadedNotes.map(x => x.midiNumber); setKeyboardRange(buildKeyboardRange(Math.min(...allMidi), Math.max(...allMidi), n)); }}
-              style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 20, fontWeight: 'bold' }}>
-              +
-            </button>
-          </div>
-
-          <div style={{ margin: '8px 0 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 16, opacity: 0.9 }}>🎙️ Mic Piano Cơ</span>
-            <button onClick={toggleMicrophone} style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 15, background: isMicEnabled ? 'linear-gradient(135deg,#00C9FF,#92FE9D)' : 'rgba(255,255,255,0.15)', color: isMicEnabled ? '#000' : '#fff' }}>
-              {isMicEnabled ? 'ON' : 'OFF'}
-            </button>
-            {isMicEnabled && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 60, height: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(100, micVolume)}%`, height: '100%', background: '#92FE9D', transition: 'width 0.1s ease-out' }} />
-                </div>
-                <div style={{ width: 30, fontSize: 13, fontWeight: 'bold', color: detectedNote ? '#92FE9D' : 'transparent' }}>
-                  {detectedNote ? getNoteName(detectedNote) : '-'}
-                </div>
-              </div>
-            )}
-          </div>
-          {isMicEnabled && (
-            <div style={{ margin: '4px 0 12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, opacity: 0.7 }}>⏱️ Bù trễ mic:</span>
-              <input
-                type="range" min={0} max={350} step={10}
-                value={micLatencyMs}
-                onChange={e => setMicLatencyMs(Number(e.target.value))}
-                style={{ width: 100, accentColor: '#92FE9D' }}
-              />
-              <span style={{ fontSize: 12, fontWeight: 'bold', color: '#92FE9D', minWidth: 40 }}>{micLatencyMs}ms</span>
-              <span style={{ fontSize: 11, opacity: 0.55 }}>(mặc định 160ms)</span>
-            </div>
-          )}
-          {micError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{micError}</p>}
-
-          {/* Smart MIDI Status */}
-          {midiError && midiError.includes('not supported') ? (
-            <div style={{ background: 'rgba(255,200,0,0.12)', border: '1px solid rgba(255,200,0,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 10, fontSize: 13, textAlign: 'left' }}>
-              <p style={{ color: '#FFD700', margin: '0 0 6px 0', fontWeight: 'bold' }}>⚠️ Trình duyệt không hỗ trợ USB MIDI</p>
-              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>🎤 <b>Dùng Mic</b> (khuyến nghị cho điện thoại/tablet)</p>
-              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>⌨️ <b>Bàn phím máy tính</b>: K=C4 · L=D4 · Z=E4 · X=F4</p>
-              <p style={{ margin: '0 0 4px 0', opacity: 0.85 }}>👆 <b>Bàn phím màn hình</b>: chạm trực tiếp vào phím đàn</p>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.55, fontSize: 11 }}>USB MIDI chỉ hoạt động trên Chrome/Edge máy tính</p>
-            </div>
-          ) : midiError ? (
-            <p style={{ color: '#ffcc00', fontSize: 13, marginBottom: 12, padding: '0 4px' }}>⚠️ {midiError}</p>
-          ) : (
-            <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>🎹 MIDI: {isConnected ? '🟢 Đã kết nối' : '🔴 Chưa kết nối (cắm dây USB vào)'}</p>
-          )}
-          {!midiError && <p style={{ fontSize: 12, opacity: 0.55, marginBottom: 8 }}>Không có MIDI? Dùng phím máy tính: <b>K=C4 · Z=G4 · X=A4 · L=D4</b></p>}
-          {loadingNotes ? <p>Loading notes...</p> : notesError ? <p style={{ color: 'red' }}>Error: {notesError}</p> : (
-            <button className="start-btn" onClick={handleStart} style={{ fontFamily: 'Nunito, sans-serif' }}>▶ START GAME</button>
           )}
         </div>
-      ) : (
-        <>
-          {viewMode === 'falling' ? (
-            <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height} waitingForNote={waitingForNote} keyboardRange={keyboardRange} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-          ) : (
-            sheetMusicEngine === 'osmd' ? (
-              <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-            ) : (
-              <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-            )
+
+        {/* Quick Toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+          {/* Wait Mode */}
+          <button onClick={() => {
+            const newVal = !waitModeEnabled;
+            setWaitModeEnabled(newVal);
+            if (newVal && !isMicEnabled) toggleMicrophone();
+          }} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: waitModeEnabled ? '#FFD700' : 'rgba(255,255,255,0.15)', color: waitModeEnabled ? '#000' : '#fff', fontSize: 13, fontWeight: waitModeEnabled ? 'bold' : 'normal' }}>
+            ⏳ Chờ: {waitModeEnabled ? 'ON' : 'OFF'}
+          </button>
+          
+          {/* Auto Play */}
+          <button onClick={() => setAutoPlayEnabled(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: autoPlayEnabled ? '#FF416C' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: autoPlayEnabled ? 'bold' : 'normal' }}>
+            🤖 Auto: {autoPlayEnabled ? 'ON' : 'OFF'}
+          </button>
+
+          {/* Mute */}
+          <button onClick={() => setIsMuted(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: isMuted ? 'rgba(255,50,50,0.8)' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13 }}>
+            {isMuted ? '🔇 Tắt tiếng Piano' : '🔊 Bật tiếng Piano'}
+          </button>
+        </div>
+
+        {/* Advanced Settings */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+          {/* View Mode */}
+          <select value={viewMode} onChange={e => setViewMode(e.target.value as any)} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+            <option value="falling" style={{ color: '#000' }}>👁️ Nốt rơi</option>
+            <option value="sheet" style={{ color: '#000' }}>👁️ Bản nhạc</option>
+          </select>
+
+          {/* Speed */}
+          <select value={speed} onChange={e => setSpeed(Number(e.target.value))} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+            <option value="0.5" style={{ color: '#000' }}>🚀 0.5x (Chậm)</option>
+            <option value="0.75" style={{ color: '#000' }}>🚀 0.75x</option>
+            <option value="1" style={{ color: '#000' }}>🚀 1.0x (Chuẩn)</option>
+            <option value="1.25" style={{ color: '#000' }}>🚀 1.25x</option>
+          </select>
+
+          {/* Octaves */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 16 }}>
+            <span style={{ fontSize: 13 }}>🎹 Quãng:</span>
+            <button onClick={() => { const n = Math.max(2, numOctaves - 1); setNumOctaves(n); const allMidi = loadedNotes.map(x => x.midiNumber); setKeyboardRange(buildKeyboardRange(Math.min(...allMidi), Math.max(...allMidi), n)); }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: 16 }}>-</button>
+            <span style={{ fontSize: 14, fontWeight: 'bold' }}>{numOctaves}</span>
+            <button onClick={() => { const n = Math.min(5, numOctaves + 1); setNumOctaves(n); const allMidi = loadedNotes.map(x => x.midiNumber); setKeyboardRange(buildKeyboardRange(Math.min(...allMidi), Math.max(...allMidi), n)); }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: 16 }}>+</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Game Area */}
+      <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+        <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} waitingForNote={waitingForNote} keyboardRange={keyboardRange} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+          {/* Fallback View Mode if not started */}
+          {!hasStarted && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+              {sheetMusicEngine === 'osmd' ? (
+                <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+              ) : (
+                <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+              )}
+            </div>
           )}
           <canvas ref={effectsCanvasRef} width={dimensions.width} height={dimensions.height} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
-          <GameHUD
-            score={score}
-            combo={combo}
-            stars={stars}
-            waitMode={waitModeEnabled}
-            isMuted={isMuted}
-            onToggleMute={() => setIsMuted(prev => !prev)}
-            onPause={gameState.isPaused ? resumeGame : pauseGame}
-            onSettings={() => { stopGame(); setHasStarted(false); }}
-            onToggleWaitMode={() => {
-              const newVal = !waitModeEnabled;
-              setWaitModeEnabled(newVal);
-              if (newVal && !isMicEnabled) toggleMicrophone();
-            }}
-          />
           {isMicEnabled && (
             <div style={{
               position: 'absolute', top: 60, right: 8, zIndex: 50,
@@ -780,10 +741,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, onBack }) => {
           <HitFeedback feedbacks={feedbacks} />
           <ComboMilestone combo={combo} />
           {showEndGame && (
-            <EndGameScreen score={score} stars={stars} accuracy={gameStats.totalNotes > 0 ? (gameStats.hitNotes / gameStats.totalNotes) * 100 : 0} totalNotes={gameStats.totalNotes} hitNotes={gameStats.hitNotes} combo={gameStats.maxCombo} lessonTitle={lesson.title} onReplay={handleStart} onNextLesson={() => {}} onHome={() => { stopGame(); setHasStarted(false); onBack(); }} />
+            <EndGameScreen score={score} stars={stars} accuracy={gameStats.totalNotes > 0 ? (gameStats.hitNotes / gameStats.totalNotes) * 100 : 0} totalNotes={gameStats.totalNotes} hitNotes={gameStats.hitNotes} combo={gameStats.maxCombo} lessonTitle={lesson.title} onReplay={handleStart} onNextLesson={() => {}} onHome={() => { stopGame(); setHasStarted(false); setShowEndGame(false); }} />
           )}
-        </>
-      )}
+        </div>
     </div>
   );
 };
