@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MidiInputEvent } from '../types';
 
 export const useMidiDevice = (
@@ -8,6 +8,7 @@ export const useMidiDevice = (
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const activeNotesRef = React.useRef<Set<number>>(new Set());
 
   const handleMidiMessage = useCallback((message: any) => {
     const [command, note, velocity] = message.data;
@@ -15,6 +16,10 @@ export const useMidiDevice = (
     // Note On (144-159)
     if (command >= 144 && command <= 159) {
       if (velocity > 0) {
+        // Prevent duplicate notes from multi-channel organs (causes extreme distortion)
+        if (activeNotesRef.current.has(note)) return;
+        activeNotesRef.current.add(note);
+        
         onNoteOn({
           midiNumber: note,
           velocity,
@@ -22,6 +27,7 @@ export const useMidiDevice = (
         });
       } else {
         // Some devices send Note On with velocity 0 instead of Note Off
+        activeNotesRef.current.delete(note);
         onNoteOff({
           midiNumber: note,
           velocity: 0,
@@ -31,6 +37,7 @@ export const useMidiDevice = (
     } 
     // Note Off (128-143)
     else if (command >= 128 && command <= 143) {
+      activeNotesRef.current.delete(note);
       onNoteOff({
         midiNumber: note,
         velocity: 0,

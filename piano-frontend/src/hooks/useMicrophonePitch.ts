@@ -51,6 +51,7 @@ export function useMicrophonePitch(
   const stableCountRef = useRef<number>(0);              // consecutive frame count
   const lastFiredNoteRef = useRef<number | null>(null);  // last note sent to game
   const inSilenceRef = useRef<boolean>(true);            // whether mic is currently in silence
+  const lastAlgoRef = useRef<string>('none');            // cache last successful algo
 
   const REQUIRED_STABLE_FRAMES = 3;    // ~3 frames @ 60fps ≈ 50ms (faster response)
   const RMS_ONSET_THRESHOLD = 0.003;   // lowered from 0.006 to allow softer organ notes
@@ -207,7 +208,7 @@ export function useMicrophonePitch(
           return;
         }
 
-        // ── 3. Pitch estimation — Cascade ────────────────────────────────────
+        // ── 3. Pitch estimation — CPU Optimization ───────────────────────────
         let frequency: number | null = null;
         let algo = 'none';
 
@@ -224,24 +225,47 @@ export function useMicrophonePitch(
           for (let i = 0; i < buffer.length; i++) pitchBuffer[i] = buffer[i];
         }
 
-        const mac = detectMacleod(pitchBuffer);
-        if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
-        else {
+        // Try the algorithm that succeeded in the previous frame first to save CPU (fixes audio crackling)
+        if (lastAlgoRef.current === 'Macleod') {
+          const mac = detectMacleod(pitchBuffer);
+          if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
+        } else if (lastAlgoRef.current === 'YIN') {
           const yin = detectYIN(pitchBuffer);
           if (yin && yin >= 27 && yin <= 4200) { frequency = yin; algo = 'YIN'; }
+        } else if (lastAlgoRef.current === 'AMDF') {
+          const amdf = detectAMDF(pitchBuffer);
+          if (amdf && amdf >= 27 && amdf <= 4200) { frequency = amdf; algo = 'AMDF'; }
+        } else if (lastAlgoRef.current === 'ACF') {
+          const acf = detectACF(pitchBuffer);
+          if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
+        } else if (lastAlgoRef.current === 'FFT') {
+          const fft = detectFFT();
+          if (fft) { frequency = fft; algo = 'FFT'; }
+        }
+
+        // If it failed or there was no previous algo, run the full cascade
+        if (!frequency) {
+          const mac = detectMacleod(pitchBuffer);
+          if (mac && mac >= 27 && mac <= 4200) { frequency = mac; algo = 'Macleod'; }
           else {
-            const amdf = detectAMDF(pitchBuffer);
-            if (amdf && amdf >= 27 && amdf <= 4200) { frequency = amdf; algo = 'AMDF'; }
+            const yin = detectYIN(pitchBuffer);
+            if (yin && yin >= 27 && yin <= 4200) { frequency = yin; algo = 'YIN'; }
             else {
-              const acf = detectACF(pitchBuffer);
-              if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
+              const amdf = detectAMDF(pitchBuffer);
+              if (amdf && amdf >= 27 && amdf <= 4200) { frequency = amdf; algo = 'AMDF'; }
               else {
-                const fft = detectFFT();
-                if (fft) { frequency = fft; algo = 'FFT'; }
+                const acf = detectACF(pitchBuffer);
+                if (acf && acf >= 27 && acf <= 4200) { frequency = acf; algo = 'ACF'; }
+                else {
+                  const fft = detectFFT();
+                  if (fft) { frequency = fft; algo = 'FFT'; }
+                }
               }
             }
           }
         }
+        
+        lastAlgoRef.current = algo;
 
         let midiNumber = frequency ? Math.round(12 * Math.log2(frequency / 440) + 69) : -1;
 
