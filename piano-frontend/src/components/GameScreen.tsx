@@ -571,6 +571,25 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, allLessons, onSe
 
         {/* Quick Toggles */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+          {/* View Mode */}
+          <select value={viewMode} onChange={e => setViewMode(e.target.value as any)} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+            <option value="falling" style={{ color: '#000' }}>👁️ Nốt rơi</option>
+            <option value="sheet" style={{ color: '#000' }}>👁️ Bản nhạc</option>
+          </select>
+          
+          {/* Auto Play */}
+          <button onClick={() => setAutoPlayEnabled(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: autoPlayEnabled ? '#FF416C' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: autoPlayEnabled ? 'bold' : 'normal' }}>
+            🤖 Auto: {autoPlayEnabled ? 'ON' : 'OFF'}
+          </button>
+          
+          {/* Speed */}
+          <select value={speed} onChange={e => setSpeed(Number(e.target.value))} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+            <option value="0.5" style={{ color: '#000' }}>🚀 0.5x</option>
+            <option value="0.75" style={{ color: '#000' }}>🚀 0.75x</option>
+            <option value="1" style={{ color: '#000' }}>🚀 1.0x</option>
+            <option value="1.25" style={{ color: '#000' }}>🚀 1.25x</option>
+          </select>
+
           {/* Wait Mode */}
           <button onClick={() => {
             const newVal = !waitModeEnabled;
@@ -579,33 +598,40 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, allLessons, onSe
           }} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: waitModeEnabled ? '#FFD700' : 'rgba(255,255,255,0.15)', color: waitModeEnabled ? '#000' : '#fff', fontSize: 13, fontWeight: waitModeEnabled ? 'bold' : 'normal' }}>
             ⏳ Chờ: {waitModeEnabled ? 'ON' : 'OFF'}
           </button>
-          
-          {/* Auto Play */}
-          <button onClick={() => setAutoPlayEnabled(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: autoPlayEnabled ? '#FF416C' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: autoPlayEnabled ? 'bold' : 'normal' }}>
-            🤖 Auto: {autoPlayEnabled ? 'ON' : 'OFF'}
+        </div>
+
+        {/* Audio & Input Settings */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+          {/* MIDI Status */}
+          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 12 }}>
+            <span style={{ fontSize: 13, color: isConnected ? '#92FE9D' : '#ffcc00' }} title={midiError || ''}>
+              {isConnected ? '🎹 MIDI: OK' : '🎹 MIDI: Ngắt kết nối'}
+            </span>
+          </div>
+
+          {/* Mic */}
+          <button onClick={toggleMicrophone} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: isMicEnabled ? '#00C9FF' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13 }}>
+            🎙️ Mic: {isMicEnabled ? 'ON' : 'OFF'}
           </button>
+
+          {/* Mic Latency Slider (Only visible if mic is on) */}
+          {isMicEnabled && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>Trễ:</span>
+              <input
+                type="range" min={0} max={350} step={10}
+                value={micLatencyMs}
+                onChange={e => setMicLatencyMs(Number(e.target.value))}
+                style={{ width: 60, accentColor: '#00C9FF' }}
+              />
+              <span style={{ fontSize: 11, fontWeight: 'bold' }}>{micLatencyMs}ms</span>
+            </div>
+          )}
 
           {/* Mute */}
           <button onClick={() => setIsMuted(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: isMuted ? 'rgba(255,50,50,0.8)' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13 }}>
-            {isMuted ? '🔇 Tắt tiếng Piano' : '🔊 Bật tiếng Piano'}
+            {isMuted ? '🔇 Tắt tiếng Web' : '🔊 Tiếng Web: Bật'}
           </button>
-        </div>
-
-        {/* Advanced Settings */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
-          {/* View Mode */}
-          <select value={viewMode} onChange={e => setViewMode(e.target.value as any)} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
-            <option value="falling" style={{ color: '#000' }}>👁️ Nốt rơi</option>
-            <option value="sheet" style={{ color: '#000' }}>👁️ Bản nhạc</option>
-          </select>
-
-          {/* Speed */}
-          <select value={speed} onChange={e => setSpeed(Number(e.target.value))} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
-            <option value="0.5" style={{ color: '#000' }}>🚀 0.5x (Chậm)</option>
-            <option value="0.75" style={{ color: '#000' }}>🚀 0.75x</option>
-            <option value="1" style={{ color: '#000' }}>🚀 1.0x (Chuẩn)</option>
-            <option value="1.25" style={{ color: '#000' }}>🚀 1.25x</option>
-          </select>
 
           {/* Octaves */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 16 }}>
@@ -619,17 +645,24 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, allLessons, onSe
 
       {/* Main Game Area */}
       <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
-        <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} waitingForNote={waitingForNote} keyboardRange={keyboardRange} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-          {/* Fallback View Mode if not started */}
-          {!hasStarted && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-              {sheetMusicEngine === 'osmd' ? (
-                <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-              ) : (
-                <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
-              )}
-            </div>
-          )}
+        {viewMode === 'falling' ? (
+          <GameCanvas registerDrawCallback={registerDrawCallback} userActiveKeysRef={userActiveKeysRef} config={config} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} waitingForNote={waitingForNote} keyboardRange={keyboardRange} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+        ) : (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: (!hasStarted && !isPaused) ? 0.3 : 1, transition: 'opacity 0.3s' }}>
+            {sheetMusicEngine === 'osmd' ? (
+              <SheetView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} xmlUrl={lesson.sheetMusicUrl ?? null} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+            ) : (
+              <VexFlowView notes={displayNotes} tempo={songTempo * speed} timeSignature={timeSignature} canvasWidth={dimensions.width} canvasHeight={dimensions.height - 60} keyboardRange={keyboardRange} userActiveKeysRef={userActiveKeysRef} config={config} waitingForNote={waitingForNote} showFingering={true} registerDrawCallback={registerDrawCallback} onKeyPress={handleScreenKeyPress} onKeyRelease={handleScreenKeyRelease} />
+            )}
+          </div>
+        )}
+        
+        {/* Start Game Overlay for Sheet Music Mode */}
+        {!hasStarted && viewMode === 'sheet' && (
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
+            <button className="start-btn" onClick={handleStart} style={{ fontFamily: 'Nunito, sans-serif' }}>▶ BẮT ĐẦU CHƠI</button>
+          </div>
+        )}
           <canvas ref={effectsCanvasRef} width={dimensions.width} height={dimensions.height} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
           {isMicEnabled && (
             <div style={{
