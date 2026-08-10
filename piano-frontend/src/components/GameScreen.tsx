@@ -577,6 +577,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ lesson, allLessons, onSe
             <option value="sheet" style={{ color: '#000' }}>👁️ Bản nhạc</option>
           </select>
           
+          {/* Chord Mode (Left Hand) - Only show in falling mode */}
+          {viewMode === 'falling' && (
+            <select value={chordMode} onChange={e => setChordMode(e.target.value as any)} style={{ padding: '6px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer' }}>
+              <option value="simple" style={{ color: '#000' }}>🎸 Tay Trái: Bass</option>
+              <option value="full" style={{ color: '#000' }}>🎸 Tay Trái: Hợp âm</option>
+              <option value="arpeggio" style={{ color: '#000' }}>🎸 Tay Trái: Rải</option>
+            </select>
+          )}
+          
           {/* Auto Play */}
           <button onClick={() => setAutoPlayEnabled(v => !v)} style={{ padding: '6px 12px', borderRadius: 16, border: 'none', cursor: 'pointer', background: autoPlayEnabled ? '#FF416C' : 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: autoPlayEnabled ? 'bold' : 'normal' }}>
             🤖 Auto: {autoPlayEnabled ? 'ON' : 'OFF'}
